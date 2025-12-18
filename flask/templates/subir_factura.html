@@ -2,40 +2,14 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Subir Captura de Factura</title>
+    <title>Subir Factura</title>
 </head>
 <body>
-    <div class="container">
-        <h1>Subir Captura de Factura</h1>
-        <form id="uploadForm" action="/api/subir_factura" method="POST" enctype="multipart/form-data">
-            <div class="form-group">
-                <label for="factura">Selecciona tu factura (imagen o PDF):</label>
-                <input type="file" id="factura" name="factura" accept="image/*,.pdf" required>
-            </div>
-            <div class="preview" id="preview"></div>
-            <button type="submit">Subir</button>
-        </form>
-    </div>
-
-    <script>
-        const input = document.getElementById('factura');
-        const preview = document.getElementById('preview');
-
-        input.addEventListener('change', () => {
-            preview.innerHTML = '';
-            const file = input.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    preview.appendChild(img);
-                };
-                reader.readAsDataURL(file);
-            } else if (file && file.type === 'application/pdf') {
-                preview.innerHTML = '<p>Archivo PDF seleccionado: ' + file.name + '</p>';
-            }
-        });
-    </script>
+    <h1>Subir Factura</h1>
+    <form action="/subir_factura" method="POST" enctype="multipart/form-data">
+        <label for="factura">Selecciona tu factura (imagen o PDF):</label>
+        <input type="file" id="factura" name="factura" accept="image/*,.pdf" required>
+        <button type="submit">Subir</button>
+    </form>
 </body>
 </html>
