@@ -1,9 +1,11 @@
 import os
 import mysql.connector
-from flask import Flask, render_template, request, redirect, url_for
+from flask import Flask, render_template, request, redirect, url_for,session
 from datetime import datetime
+#from werkzeug.security import check_password_hash       
 
 app = Flask(__name__)
+app.secret_key = "clave_secreta"
 UPLOAD_FOLDER = 'uploads'
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
@@ -22,7 +24,61 @@ def get_connection():
 
 @app.route('/')
 def index():
-    return render_template('subir_factura.html')
+    # Si el usuario ya está en sesión, mostrar index
+    if "username" in session:
+        return render_template("index.html", username=session["username"])
+    # Si no, redirigir al login
+    return redirect(url_for("login"))
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT RUT, PASSWORD FROM usuario WHERE RUT = %s", (username,))
+        usuario = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        # Validación con hash
+        if usuario and usuario["PASSWORD"] == password: #check_password_hash( , password):
+            session["username"] = username
+            return redirect(url_for("index"))
+        else:
+            return "Usuario o contraseña incorrectos"
+
+    if "username" in session:
+        return redirect(url_for("index"))
+
+    return render_template("login.html")
+
+@app.route("/logout")
+def logout():
+    session.pop("username", None)  # Eliminar sesión
+    return redirect(url_for("login"))
+
+
+
+
+
+@app.route('/roles', methods=['POST', 'GET'])
+def roles():
+    #obtener datos de usuarios y roles
+    conn = get_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT rut, digito_ver, nombre, id_rol, password
+        FROM usuario;
+    """)
+    usuarios = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('roles.html', usuarios=usuarios)
+    
+
 
 @app.route('/subir_factura', methods=['POST'])
 def subir_factura():
@@ -46,8 +102,9 @@ def subir_factura():
     cursor.close()
     conn.close()
 
-    return redirect(url_for('index'))
+    return render_template('subir_factura.html')
 
 if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
     app.run(debug=True)
+
