@@ -1,53 +1,44 @@
-from PyQt5.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QFrame,
-)
-from PyQt5.QtGui import QFont, QPixmap
+from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QFrame, QStackedWidget
+from PyQt5.QtGui import QFont
 from PyQt5.QtCore import Qt
-
+from frontend.ui_inventario import crear_pagina_inventario
 
 def crear_pagina_menu(controlador=None):
     return Ui_MenuPrincipal(controlador=controlador)
 
 
 class Ui_MenuPrincipal(QWidget):
+
     def __init__(self, parent=None, controlador=None):
         super().__init__(parent)
         self.controlador = controlador
         self.setObjectName("MenuPrincipal")
 
-        # ------------------------
-        # Fondo de la ventana
-        # ------------------------
-        self.fondo = QLabel(self)
-        pixmap = QPixmap("frontend/assets/fondo_venta1.png")
-        self.fondo.setPixmap(pixmap)
-        self.fondo.setScaledContents(True)
-        self.fondo.setGeometry(0, 0, self.width(), self.height())
-        self.fondo.lower()  # Enviar al fondo
 
-        # Ajuste dinámico de tamaño
-        self.resizeEvent = lambda event: self.fondo.setGeometry(
-            0, 0, self.width(), self.height()
-        )
+        # 👉 Fondo aplicado vía stylesheet (no se pierde al cambiar páginas)
+        self.setStyleSheet("""
+            QWidget#MenuPrincipal {
+                background-image: url(frontend/assets/fondo_venta1.png);
+                background-repeat: no-repeat;
+                background-position: center;
+                background-attachment: fixed;
+            }
+        """)
 
-        # ------------------------
-        # Layout principal centrado
-        # ------------------------
+        # Layout principal
         main_layout = QVBoxLayout(self)
         main_layout.setAlignment(Qt.AlignCenter)
 
-        cards_layout = QHBoxLayout()
+        # Contenedor de páginas
+        self.stacked = QStackedWidget(self)
+        main_layout.addWidget(self.stacked)
+
+        # Página inicial (menú con tarjetas)
+        self.menu_page = QWidget()
+        cards_layout = QHBoxLayout(self.menu_page)
         cards_layout.setSpacing(40)
         cards_layout.setAlignment(Qt.AlignCenter)
 
-        # ------------------------
-        # Datos de las tarjetas
-        # ------------------------
         cards_data = [
             ("Inventario", "inventario"),
             ("Ventas", "ventas"),
@@ -59,52 +50,50 @@ class Ui_MenuPrincipal(QWidget):
             card = self.create_card(nombre, accion)
             cards_layout.addWidget(card)
 
-        main_layout.addLayout(cards_layout)
+        self.stacked.addWidget(self.menu_page)  # índice 0 → menú
 
     def create_card(self, nombre, accion):
         frame = QFrame()
         frame.setFixedSize(180, 180)
-        frame.setStyleSheet(
-            """
+        frame.setStyleSheet("""
             QFrame {
-                background-color: #ECF0F1;  /* gris claro */
+                background-color: #ECF0F1;
                 border-radius: 18px;
             }
             QFrame:hover {
-                background-color: #AAB7B8;  /* gris más oscuro al hover */
+                background-color: #AAB7B8;
             }
-        """
-        )
+        """)
 
         vbox = QVBoxLayout(frame)
         vbox.setAlignment(Qt.AlignCenter)
 
         label = QLabel(nombre)
         label.setFont(QFont("Segoe UI", 16, QFont.Bold))
-        label.setStyleSheet("color: #2D3436;")  # texto gris oscuro
+        label.setStyleSheet("color: #2D3436;")
         label.setAlignment(Qt.AlignCenter)
         vbox.addWidget(label)
 
-        # Botón invisible para capturar clics
         boton = QPushButton(frame)
         boton.setStyleSheet("background: transparent; border: none;")
         boton.setCursor(Qt.PointingHandCursor)
         boton.setFixedSize(180, 180)
-        boton.clicked.connect(lambda: self.card_clicked(accion))
+        boton.clicked.connect(lambda _, a=accion: self.card_clicked(a))
 
         return frame
 
     def card_clicked(self, accion):
-        if self.controlador is None:
-            print("⚠ No se asignó el controlador del Dashboard")
-            return
-
-        acciones = {
-            "inventario": self.controlador.abrir_inventario,
-            "ventas": self.controlador.abrir_ventas,
-            "arqueo": self.controlador.abrir_arqueo,
-            "usuarios": self.controlador.abrir_usuarios,
-        }
-
-        if accion in acciones:
-            acciones[accion]()
+        if accion == "inventario":
+            # Crear página inventario y mostrarla dentro del stacked
+            inventario_page = crear_pagina_inventario()
+            self.stacked.addWidget(inventario_page)
+            self.stacked.setCurrentWidget(inventario_page)
+        elif self.controlador:
+            if accion == "ventas":
+                self.controlador.abrir_ventas(self.stacked)
+            elif accion == "arqueo":
+                self.controlador.abrir_arqueo(self.stacked)
+            elif accion == "usuarios":
+                self.controlador.abrir_usuarios(self.stacked)
+        else:
+            print(f"Acción '{accion}' no disponible (controlador no inicializado)")
