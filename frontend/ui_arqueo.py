@@ -30,7 +30,7 @@ def crear_pagina_arqueo():
     pagina.btn_volver = btn_volver
 
     # Título superior
-    etiqueta = QLabel("Cierre de Caja - Arqueo Diario")
+    etiqueta = QLabel("Cierre de Caja - Informe Diario")
     etiqueta.setAlignment(Qt.AlignTop | Qt.AlignHCenter)
     etiqueta.setStyleSheet("font-size: 18px; font-weight: bold; color: #2D3436;")
     layout.addWidget(etiqueta)

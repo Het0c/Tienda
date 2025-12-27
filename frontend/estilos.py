@@ -128,5 +128,16 @@ def aplicar_estilos(widget):
             font-style: italic;
             margin-top: 10px;
         }
+
+        /* -----------------------
+           Tooltips
+        ----------------------- */
+        QToolTip {
+            background-color: #2D3436;
+            color: #ffffff;
+            border: 1px solid #F4D03F;
+            padding: 5px;
+            border-radius: 4px;
+        }
     """
     )

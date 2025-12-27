@@ -218,7 +218,7 @@ def crear_pagina_clientes():
     layout.addWidget(btn_volver, alignment=Qt.AlignLeft)
     pagina.btn_volver = btn_volver
 
-    etiqueta = QLabel("Lista de usuarios")
+    etiqueta = QLabel("Lista de Clientas")
     etiqueta.setAlignment(Qt.AlignCenter)
     etiqueta.setStyleSheet("font-size: 18px; font-weight: bold; color: #2D3436;")
     layout.addWidget(etiqueta)

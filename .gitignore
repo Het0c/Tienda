@@ -1,4 +1,20 @@
+# Entorno virtual
+venv/
+.venv/
+
+# Archivos de Python compilados
 __pycache__/
 *.pyc
-.venv/
-*.pyc
+
+# Bases de datos locales
+*.db
+
+# Archivos temporales
+*.log
+*.tmp
+
+# Configuración del editor
+.vscode/
+
+# Imágenes o assets generados temporalmente (si aplica)
+*.swp
