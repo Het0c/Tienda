@@ -94,7 +94,7 @@ class HoverCard(QFrame):
 
         self.label = QLabel(nombre)
         self.label.setWordWrap(True)
-        self.label.setFont(QFont("Segoe UI", 26, QFont.Bold))
+        self.label.setFont(QFont("Segoe UI", 40, QFont.Bold))
         self.label.setStyleSheet(
             f"color: {self._text_color.name()}; background: transparent; border: none;"
         )
@@ -212,17 +212,7 @@ class Ui_MenuPrincipal(QWidget):
         self.setObjectName("MenuPrincipal")
         self.setAttribute(Qt.WA_StyledBackground, True)
 
-        ruta_fondo = os.path.join(
-            os.path.dirname(__file__), "assets", "fondo_venta5.png"
-        ).replace("\\", "/")
-
-        self.setStyleSheet(
-            f"""
-            QWidget#MenuPrincipal {{
-                border-image: url({ruta_fondo}) 0 0 0 0 stretch stretch;
-            }}
-        """
-        )
+        self.cambiar_tema("light")
 
         # Layout principal
         main_layout = QVBoxLayout(self)
@@ -274,6 +264,24 @@ class Ui_MenuPrincipal(QWidget):
                 row += 1
 
         main_layout.addLayout(cards_layout)
+
+    def cambiar_tema(self, tema):
+        if tema == "dark":
+            imagen = "fondo_venta7.png"
+        else:
+            imagen = "fondo_venta5.png"
+
+        ruta_fondo = os.path.join(os.path.dirname(__file__), "assets", imagen).replace(
+            "\\", "/"
+        )
+
+        self.setStyleSheet(
+            f"""
+            QWidget#MenuPrincipal {{
+                border-image: url({ruta_fondo}) 0 0 0 0 stretch stretch;
+            }}
+        """
+        )
 
     def create_card(self, nombre, accion, simbolo):
         card = HoverCard(nombre, accion, simbolo)

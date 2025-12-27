@@ -1,4 +1,6 @@
 import sqlite3
+import json
+from datetime import datetime
 from PyQt5.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -25,6 +27,7 @@ from backend.logica.marcas import (
     eliminar_marca,
     obtener_historial_auditoria,
 )
+from backend.logica.ventas import verificacion_encargado_local
 
 
 def obtener_info_producto(codigo):
@@ -69,35 +72,129 @@ class VentanaAuditoria(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("Historial de Auditoría")
-        self.setMinimumSize(700, 400)
-        self.setStyleSheet("background-color: white;")
+        self.resize(900, 600)
+
+        # Detectar tema
+        tema = "dark"
+        try:
+            with open("config.json", "r") as f:
+                data = json.load(f)
+                tema = data.get("tema", "dark")
+        except:
+            pass
+
+        # Estilos según tema
+        if tema == "dark":
+            self.setStyleSheet(
+                """
+                QDialog { background-color: #2D3436; color: white; }
+                QLabel { color: white; }
+                QTableWidget { background-color: #2D3436; alternate-background-color: #353b48; color: white; gridline-color: #636e72; border: 1px solid #636e72; }
+                QHeaderView::section { background-color: #2D3436; color: white; border: 1px solid #636e72; padding: 4px; }
+                QTableWidget::item:selected { background-color: #F4D03F; color: black; }
+            """
+            )
+        else:
+            self.setStyleSheet(
+                """
+                QDialog { background-color: white; color: black; }
+                QLabel { color: #2D3436; }
+                QTableWidget { background-color: white; color: black; gridline-color: #dfe6e9; }
+                QHeaderView::section { background-color: #dfe6e9; padding: 4px; border: none; font-weight: bold; color: black; }
+            """
+            )
 
         layout = QVBoxLayout(self)
 
+        # Cabecera con título y botón eliminar
+        header_layout = QHBoxLayout()
+
         lbl_titulo = QLabel("Registro de Cambios y Eliminaciones")
         lbl_titulo.setStyleSheet(
-            "font-size: 18px; font-weight: bold; color: #2D3436; margin-bottom: 10px;"
+            "font-size: 18px; font-weight: bold; margin-bottom: 10px;"
         )
-        layout.addWidget(lbl_titulo)
+        header_layout.addWidget(lbl_titulo)
+        header_layout.addStretch()
 
-        tabla = QTableWidget()
-        tabla.setColumnCount(3)
-        tabla.setHorizontalHeaderLabels(["Fecha", "Acción", "Detalle"])
-        tabla.horizontalHeader().setStretchLastSection(True)
-        tabla.setAlternatingRowColors(True)
-        tabla.setStyleSheet(
-            "QHeaderView::section { background-color: #dfe6e9; padding: 4px; border: none; font-weight: bold; }"
+        btn_eliminar = QPushButton("🗑 Eliminar Historial")
+        btn_eliminar.setCursor(Qt.PointingHandCursor)
+        btn_eliminar.setStyleSheet(
+            "background-color: #ff7675; color: white; font-weight: bold; padding: 8px 15px; border-radius: 6px; border: none;"
         )
+        btn_eliminar.clicked.connect(self.eliminar_historial)
+        header_layout.addWidget(btn_eliminar)
 
+        layout.addLayout(header_layout)
+
+        self.tabla = QTableWidget()
+        self.tabla.setColumnCount(3)
+        self.tabla.setHorizontalHeaderLabels(["Fecha", "Acción", "Detalle"])
+        self.tabla.horizontalHeader().setStretchLastSection(True)
+        self.tabla.setAlternatingRowColors(True)
+
+        layout.addWidget(self.tabla)
+        self.cargar_datos()
+
+    def cargar_datos(self):
         datos = obtener_historial_auditoria()
-        tabla.setRowCount(len(datos))
+        self.tabla.setRowCount(len(datos))
 
         for i, (fecha, accion, detalle) in enumerate(datos):
-            tabla.setItem(i, 0, QTableWidgetItem(str(fecha)))
-            tabla.setItem(i, 1, QTableWidgetItem(str(accion)))
-            tabla.setItem(i, 2, QTableWidgetItem(str(detalle)))
+            self.tabla.setItem(i, 0, QTableWidgetItem(str(fecha)))
+            self.tabla.setItem(i, 1, QTableWidgetItem(str(accion)))
+            self.tabla.setItem(i, 2, QTableWidgetItem(str(detalle)))
 
-        layout.addWidget(tabla)
+    def eliminar_historial(self):
+        reply = QMessageBox.question(
+            self,
+            "Confirmar eliminación",
+            "¿Estás seguro de que deseas eliminar todo el historial de auditoría?\nEsta acción no se puede deshacer.",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+
+        if reply == QMessageBox.Yes:
+            pwd, ok = QInputDialog.getText(
+                self,
+                "Autorización requerida",
+                "Ingrese contraseña de administrador:",
+                QLineEdit.Password,
+            )
+            if not ok or not pwd:
+                return
+
+            if verificacion_encargado_local(pwd) not in (1, 3):
+                QMessageBox.warning(
+                    self,
+                    "Acceso denegado",
+                    "Contraseña incorrecta o permisos insuficientes.",
+                )
+                return
+
+            try:
+                conn = sqlite3.connect("reuso.db")
+                cursor = conn.cursor()
+                cursor.execute("DELETE FROM auditoria")
+                conn.commit()
+                conn.close()
+                self.cargar_datos()
+
+                # Guardar registro en log separado
+                try:
+                    with open("log_eliminaciones.txt", "a", encoding="utf-8") as f:
+                        f.write(
+                            f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] El administrador '{pwd}' eliminó el historial de auditoría.\n"
+                        )
+                except Exception as e:
+                    print(f"Error al escribir en log: {e}")
+
+                QMessageBox.information(
+                    self, "Éxito", "El historial ha sido eliminado correctamente."
+                )
+            except Exception as e:
+                QMessageBox.critical(
+                    self, "Error", f"No se pudo eliminar el historial: {e}"
+                )
 
 
 def crear_pagina_ingreso():
@@ -132,9 +229,7 @@ def crear_pagina_ingreso():
     header_marcas = QHBoxLayout()
 
     lbl_titulo_marcas = QLabel("Seleccione la Marca")
-    lbl_titulo_marcas.setStyleSheet(
-        "font-size: 24px; font-weight: bold; color: #2D3436;"
-    )
+    lbl_titulo_marcas.setStyleSheet("font-size: 24px; font-weight: bold;")
 
     lbl_hint = QLabel("(Clic derecho para editar/eliminar)")
     lbl_hint.setObjectName("mensajeInferior")
@@ -345,14 +440,12 @@ def crear_pagina_ingreso():
 
     # Título
     titulo = QLabel("Ingreso de Mercadería")
-    titulo.setStyleSheet("font-size: 24px; font-weight: bold; color: #2D3436;")
+    titulo.setStyleSheet("font-size: 24px; font-weight: bold;")
     titulo.setAlignment(Qt.AlignCenter)
     layout_ingreso.addWidget(titulo)
 
     lbl_marca_actual = QLabel("Marca: -")
-    lbl_marca_actual.setStyleSheet(
-        "font-size: 18px; color: #636e72; font-weight: bold;"
-    )
+    lbl_marca_actual.setStyleSheet("font-size: 18px; font-weight: bold;")
     lbl_marca_actual.setAlignment(Qt.AlignCenter)
     layout_ingreso.addWidget(lbl_marca_actual)
     layout_ingreso.addSpacing(20)
@@ -367,7 +460,7 @@ def crear_pagina_ingreso():
 
     # Buscador
     lbl_buscar = QLabel("Código del Producto:")
-    lbl_buscar.setStyleSheet("font-size: 16px; font-weight: bold;")
+    lbl_buscar.setStyleSheet("font-size: 16px; font-weight: bold; color: #2D3436;")
     card_layout.addWidget(lbl_buscar)
 
     input_codigo = QLineEdit()
@@ -402,7 +495,9 @@ def crear_pagina_ingreso():
     info_layout.addWidget(lbl_precio)
 
     lbl_cantidad = QLabel("Cantidad a ingresar:")
-    lbl_cantidad.setStyleSheet("font-size: 16px; font-weight: bold; margin-top: 10px;")
+    lbl_cantidad.setStyleSheet(
+        "font-size: 16px; font-weight: bold; margin-top: 10px; color: #2D3436;"
+    )
     input_cantidad = QLineEdit()
     input_cantidad.setPlaceholderText("Ej: 10")
     input_cantidad.setStyleSheet(

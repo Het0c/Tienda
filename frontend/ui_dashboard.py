@@ -21,6 +21,7 @@ from PyQt5.QtCore import (
     QDate,
     QLocale,
 )
+import json
 import os
 
 # Importar páginas
@@ -121,10 +122,12 @@ class Dashboard(QMainWindow):
         super().__init__()
         self.sesion = sesion
         self.sidebar_expandido = False
+        self.tema_actual = "dark"
+        self.cargar_preferencias()
         self.setWindowTitle("Sistema de Ventas")
         self.setMinimumSize(1000, 600)
 
-        aplicar_estilos(self)
+        aplicar_estilos(self, self.tema_actual)
 
         # ===============================
         # LAYOUT BASE
@@ -141,18 +144,29 @@ class Dashboard(QMainWindow):
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setMinimumWidth(0)
         self.sidebar.setMaximumWidth(0)  # Inicia oculto para la animación
-        self.sidebar.setStyleSheet(
+
+        if self.tema_actual == "dark":
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar {
+                    background-color: #dcdcdc;
+                    border-right: 1px solid #dcdde1;
+                }
             """
-            QFrame#sidebar {
-                background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:0, y2:1, stop:0 #2D3436, stop:1 #101010);
-                border-right: 1px solid #444;
-            }
-        """
-        )
+            )
+        else:
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar {
+                    background-color: #2D3436;
+                    border-right: 1px solid #444;
+                }
+            """
+            )
 
         sidebar_layout = QVBoxLayout(self.sidebar)
         sidebar_layout.setContentsMargins(5, 10, 5, 10)
-        sidebar_layout.setSpacing(10)
+        sidebar_layout.setSpacing(20)
 
         # ===============================
         # BOTONES DEL SIDEBAR
@@ -167,16 +181,16 @@ class Dashboard(QMainWindow):
             btn.setIconSize(QSize(24, 24))
             return btn
 
-        self.btn_menu_principal = crear_boton("Menú Principal", "home.png")
-        self.btn_inventario = crear_boton("Inventario", "box.png")
-        self.btn_ventas = crear_boton("Ventas", "cart.png")
-        self.btn_arqueo = crear_boton("Informes", "wallet.png")
-        self.btn_facturas = crear_boton("Facturas", "bill.png")
-        self.btn_ingreso = crear_boton("Ingreso Mercadería", "truck.png")
-        self.btn_usuarios = crear_boton("Clientas", "users.png")
+        self.btn_menu_principal = crear_boton("Menú Principal", "menuside.png")
+        self.btn_inventario = crear_boton("Inventario", "InventarioIcono.png")
+        self.btn_ventas = crear_boton("Ventas", "VentasIcono.png")
+        self.btn_arqueo = crear_boton("Informes", "InformesIcono.png")
+        self.btn_facturas = crear_boton("Facturas", "FacturasIcono.png")
+        self.btn_ingreso = crear_boton("Ingreso Mercadería", "Mercaderia.png")
+        self.btn_usuarios = crear_boton("Clientas", "Usuarias.png")
         self.btn_graficos = crear_boton("Dashboard", "chart.png")
         self.btn_logout = crear_boton("Cerrar Sesión", "logout.png")
-        self.btn_salir = crear_boton("Salir", "exit.png")
+        self.btn_salir = crear_boton("Salir", "salir.png")
 
         # Agregar botones principales
         for btn in [
@@ -199,8 +213,8 @@ class Dashboard(QMainWindow):
         # Estilo base para botones de salida (no cambian de estado activo)
         estilo_salida = """
             QPushButton {
-                background-color: #2D3436;
-                color: white;
+                background-color: transparent;
+                color: #2D3436;
                 padding: 15px 10px;
                 font-size: 18px;
                 text-align: left;
@@ -208,7 +222,7 @@ class Dashboard(QMainWindow):
                 border-radius: 5px;
             }
             QPushButton:hover {
-                background-color: #636e72;
+                background-color: #dcdde1;
             }
         """
         self.btn_logout.setStyleSheet(estilo_salida)
@@ -227,13 +241,24 @@ class Dashboard(QMainWindow):
 
         # Botón hamburguesa
         menu_layout = QHBoxLayout()
-        self.btn_menu = QPushButton("☰")
+        self.btn_menu = QPushButton()
+        ruta_menu = os.path.join(os.path.dirname(__file__), "assets", "menu.png")
+        self.btn_menu.setIcon(QIcon(ruta_menu))
+        self.btn_menu.setIconSize(QSize(28, 28))
         self.btn_menu.setFixedSize(40, 40)
-        self.btn_menu.setStyleSheet(
-            "font-size: 20px; background-color: #dfe6e9; border-radius: 6px;"
-        )
+        self.btn_menu.setStyleSheet("background-color: #dfe6e9; border-radius: 6px;")
         self.btn_menu.clicked.connect(self.toggle_sidebar)
         menu_layout.addWidget(self.btn_menu)
+
+        # Botón Toggle Tema
+        self.btn_tema = QPushButton()
+        ruta_modes = os.path.join(os.path.dirname(__file__), "assets", "modes.png")
+        self.btn_tema.setIcon(QIcon(ruta_modes))
+        self.btn_tema.setIconSize(QSize(28, 28))
+        self.btn_tema.setFixedSize(40, 40)
+        self.btn_tema.setStyleSheet("background-color: #dfe6e9; border-radius: 6px;")
+        self.btn_tema.clicked.connect(self.toggle_tema)
+        menu_layout.addWidget(self.btn_tema)
 
         menu_layout.addStretch()
 
@@ -273,6 +298,7 @@ class Dashboard(QMainWindow):
         # Stacked widget para páginas
         self.stack = AnimatedStackedWidget()
         self.menu_principal = crear_pagina_menu()
+        self.menu_principal.cambiar_tema(self.tema_actual)
         self.menu_principal.navegar.connect(self.navegar_desde_menu)
         self.stack.currentChanged.connect(self.actualizar_botones_sidebar)
         self.stack.addWidget(self.menu_principal)  # 0
@@ -358,6 +384,61 @@ class Dashboard(QMainWindow):
         self.timer_reloj.timeout.connect(self.actualizar_reloj)
         self.timer_reloj.start(1000)
         self.actualizar_reloj()
+
+    def cargar_preferencias(self):
+        try:
+            with open("config.json", "r") as f:
+                data = json.load(f)
+                self.tema_actual = data.get("tema", "dark")
+        except:
+            self.tema_actual = "dark"
+
+    def guardar_preferencias(self):
+        try:
+            with open("config.json", "w") as f:
+                json.dump({"tema": self.tema_actual}, f)
+        except Exception as e:
+            print(f"Error guardando preferencias: {e}")
+
+    def toggle_tema(self):
+        if self.tema_actual == "light":
+            self.tema_actual = "dark"
+        else:
+            self.tema_actual = "light"
+
+        # Aplicar estilos globales
+        aplicar_estilos(self, self.tema_actual)
+
+        # Actualizar fondo del menú principal
+        self.menu_principal.cambiar_tema(self.tema_actual)
+
+        # Actualizar estilos locales (Sidebar y Reloj)
+        if self.tema_actual == "dark":
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar { background-color: #dcdcdc; border-right: 1px solid #dcdde1; }
+            """
+            )
+            self.clock_container.setStyleSheet(
+                """
+                QFrame { background-color: #2D3436; border-radius: 10px; padding: 4px 12px; border: 1px solid #444; }
+            """
+            )
+        else:
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar { background-color: #2D3436; border-right: 1px solid #444; }
+            """
+            )
+            self.clock_container.setStyleSheet(
+                """
+                QFrame { background-color: #2D3436; border-radius: 10px; padding: 4px 12px; border: 1px solid #444; }
+            """
+            )
+
+        # Actualizar botones del sidebar para corregir color de texto
+        self.actualizar_botones_sidebar(self.stack.currentIndex())
+        self.guardar_preferencias()
 
     # ========================================================
     # FUNCIONES
@@ -463,13 +544,21 @@ class Dashboard(QMainWindow):
 
         btn_activo = mapping.get(index)
 
-        color_texto = "white" if self.sidebar_expandido else "transparent"
+        # Determinar color de texto base según el tema
+        if self.tema_actual == "dark":
+            base_text_color = "#2D3436"
+            hover_color = "#dcdde1"
+        else:
+            base_text_color = "white"
+            hover_color = "#636e72"
+
+        color_texto = base_text_color if self.sidebar_expandido else "transparent"
         color_texto_activo = "#2D3436" if self.sidebar_expandido else "transparent"
 
         # Estilo base
         estilo_base = f"""
             QPushButton {{
-                background-color: #2D3436;
+                background-color: transparent;
                 color: {color_texto};
                 padding: 15px 10px;
                 font-size: 18px;
@@ -478,7 +567,7 @@ class Dashboard(QMainWindow):
                 border-radius: 5px;
             }}
             QPushButton:hover {{
-                background-color: #636e72;
+                background-color: {hover_color};
             }}
         """
 

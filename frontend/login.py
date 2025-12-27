@@ -47,15 +47,15 @@ class LoadingButton(QPushButton):
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
 
-            # Dibujar fondo azul manualmente para mantener estilo al cargar
-            painter.setBrush(QColor("#2F80ED"))
+            # Dibujar fondo amarillo manualmente para mantener estilo al cargar
+            painter.setBrush(QColor("#F4D03F"))
             painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(self.rect(), 6, 6)
+            painter.drawRoundedRect(self.rect(), 8, 8)
 
             w = self.width()
             h = self.height()
 
-            painter.setPen(QPen(QColor("white"), 3))
+            painter.setPen(QPen(QColor("#2D3436"), 3))
 
             radius = 10
             rect_x = int(w / 2 - radius)
@@ -206,8 +206,8 @@ class LoginWindow(QWidget):
         self.login_btn.setStyleSheet(
             """
             QPushButton {
-                background-color: #2F80ED;
-                color: white;
+                background-color: #F4D03F;
+                color: #2D3436;
                 border: none;
                 padding: 15px;
                 font-size: 20px;
@@ -215,7 +215,7 @@ class LoginWindow(QWidget):
                 border-radius: 8px;
             }
             QPushButton:hover {
-                background-color: #1E70D7;
+                background-color: #D4AC0D;
             }
             QPushButton:disabled {
                 background-color: #BDC3C7; /* Gris si está deshabilitado */
