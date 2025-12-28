@@ -111,7 +111,7 @@ def crear_pagina_arqueo():
     etiqueta = QLabel("Cierre de Caja - Informe Diario")
     etiqueta.setAlignment(Qt.AlignCenter)
     etiqueta.setStyleSheet(
-        f"font-size: 36px; font-weight: bold; color: {text_color}; margin-bottom: 20px;"
+        f"font-size: 42px; font-weight: bold; color: {text_color}; margin-bottom: 30px;"
     )
     layout.addWidget(etiqueta)
 
@@ -127,14 +127,14 @@ def crear_pagina_arqueo():
             }}
         """
         )
-        card.setMinimumWidth(500)
+        card.setMinimumWidth(600)
         card_layout = QVBoxLayout(card)
-        card_layout.setContentsMargins(20, 20, 20, 20)
+        card_layout.setContentsMargins(25, 25, 25, 25)
 
         # Título de la tarjeta
         lbl_titulo = QLabel(f"{icono} {titulo}")
         lbl_titulo.setStyleSheet(
-            f"font-size: 24px; font-weight: bold; color: {text_color}; border: none; margin-bottom: 10px;"
+            f"font-size: 28px; font-weight: bold; color: {text_color}; border: none; margin-bottom: 15px;"
         )
         card_layout.addWidget(lbl_titulo)
 
@@ -151,7 +151,7 @@ def crear_pagina_arqueo():
         tabla.setFocusPolicy(Qt.NoFocus)
 
         # Altura ajustada al contenido
-        altura = 60 * len(datos) + 50
+        altura = 70 * len(datos) + 60
         tabla.setMinimumHeight(altura)
         tabla.setMaximumHeight(altura)
 
@@ -162,20 +162,20 @@ def crear_pagina_arqueo():
                 color: {text_color};
                 gridline-color: {border_color};
                 border: none;
-                font-size: 20px;
+                font-size: 24px;
                 alternate-background-color: {alternate_bg};
             }}
             QHeaderView::section {{
                 background-color: {header_bg};
                 color: {text_color};
                 font-weight: bold;
-                padding: 12px;
+                padding: 15px;
                 border: none;
                 border-bottom: 2px solid {border_color};
-                font-size: 20px;
+                font-size: 24px;
             }}
             QTableWidget::item {{
-                padding: 12px;
+                padding: 15px;
                 border-bottom: 1px solid {border_color};
             }}
         """
@@ -226,14 +226,14 @@ def crear_pagina_arqueo():
     # Botón Cerrar Caja
     btn_cerrar_caja = QPushButton("🔒 Cerrar Caja")
     btn_cerrar_caja.setCursor(Qt.PointingHandCursor)
-    btn_cerrar_caja.setFixedSize(250, 60)
+    btn_cerrar_caja.setFixedSize(300, 70)
     btn_cerrar_caja.setStyleSheet(
         """
         QPushButton {
             background-color: #e17055;
             color: white;
             border: none;
-            font-size: 20px;
+            font-size: 24px;
             font-weight: bold;
             border-radius: 8px;
         }

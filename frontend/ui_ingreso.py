@@ -68,6 +68,28 @@ def agregar_stock_bd(codigo, cantidad):
         return False, str(e), 0, 0
 
 
+def obtener_resumen_marca(marca):
+    try:
+        conn = sqlite3.connect("reuso.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT stock, precio FROM productos WHERE nombre LIKE ?", (f"%{marca}%",)
+        )
+        rows = cursor.fetchall()
+        conn.close()
+
+        total_stock = sum(row[0] for row in rows if row[0] is not None)
+        total_valor = sum(
+            (row[0] * row[1])
+            for row in rows
+            if row[0] is not None and row[1] is not None
+        )
+        return total_stock, total_valor
+    except Exception as e:
+        print(f"Error resumen marca: {e}")
+        return 0, 0
+
+
 class VentanaAuditoria(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -284,6 +306,11 @@ def crear_pagina_ingreso():
     def ir_a_ingreso(nombre_marca):
         marca_seleccionada["nombre"] = nombre_marca
         lbl_marca_actual.setText(f"Marca: {nombre_marca}")
+
+        stock, valor = obtener_resumen_marca(nombre_marca)
+        lbl_resumen_stock.setText(f"Total Prendas: {stock}")
+        lbl_resumen_valor.setText(f"Valor Total: ${valor:,}")
+
         stack.setCurrentIndex(1)
         input_codigo.setFocus()
 
@@ -448,6 +475,25 @@ def crear_pagina_ingreso():
     lbl_marca_actual.setStyleSheet("font-size: 18px; font-weight: bold;")
     lbl_marca_actual.setAlignment(Qt.AlignCenter)
     layout_ingreso.addWidget(lbl_marca_actual)
+
+    # Resumen de la marca
+    resumen_layout = QHBoxLayout()
+    resumen_layout.setAlignment(Qt.AlignCenter)
+
+    lbl_resumen_stock = QLabel("Total Prendas: 0")
+    lbl_resumen_stock.setStyleSheet(
+        "font-size: 16px; color: #2D3436; margin-right: 20px;"
+    )
+
+    lbl_resumen_valor = QLabel("Valor Total: $0")
+    lbl_resumen_valor.setStyleSheet(
+        "font-size: 16px; color: #2D3436; font-weight: bold;"
+    )
+
+    resumen_layout.addWidget(lbl_resumen_stock)
+    resumen_layout.addWidget(lbl_resumen_valor)
+    layout_ingreso.addLayout(resumen_layout)
+
     layout_ingreso.addSpacing(20)
 
     # Tarjeta contenedora

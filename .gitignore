@@ -18,3 +18,4 @@ __pycache__/
 
 # Imágenes o assets generados temporalmente (si aplica)
 *.swp
+config.json

@@ -23,6 +23,7 @@ from PyQt5.QtCore import (
 )
 import json
 import os
+import sqlite3
 
 # Importar páginas
 from frontend.ui_inventario import crear_pagina_inventario
@@ -32,6 +33,7 @@ from frontend.ui_grafico import crear_pagina_grafico
 from frontend.ui_arqueo import crear_pagina_arqueo
 from frontend.ui_menu_principal import crear_pagina_menu
 from frontend.ui_ingreso import crear_pagina_ingreso
+from frontend.ui_facturas import crear_pagina_facturas
 from frontend.estilos import aplicar_estilos
 
 
@@ -295,6 +297,34 @@ class Dashboard(QMainWindow):
         menu_layout.addWidget(self.clock_container)
         contenido_layout.addLayout(menu_layout)
 
+        # Notificaciones de Stock Bajo
+        self.frame_notificacion = QFrame()
+        self.frame_notificacion.setVisible(False)
+        self.frame_notificacion.setStyleSheet(
+            """
+            QFrame { background-color: #e17055; border-radius: 8px; margin-bottom: 10px; }
+            QLabel { color: white; font-weight: bold; font-size: 14px; }
+            QPushButton { background-color: transparent; color: white; font-weight: bold; border: none; font-size: 16px; }
+            QPushButton:hover { color: #dfe6e9; }
+        """
+        )
+        layout_notif = QHBoxLayout(self.frame_notificacion)
+        layout_notif.setContentsMargins(15, 10, 15, 10)
+
+        self.lbl_notificacion = QLabel()
+        btn_cerrar_notif = QPushButton("✕")
+        btn_cerrar_notif.setFixedSize(30, 30)
+        btn_cerrar_notif.setCursor(Qt.PointingHandCursor)
+        btn_cerrar_notif.clicked.connect(
+            lambda: self.frame_notificacion.setVisible(False)
+        )
+
+        layout_notif.addWidget(self.lbl_notificacion)
+        layout_notif.addStretch()
+        layout_notif.addWidget(btn_cerrar_notif)
+
+        contenido_layout.addWidget(self.frame_notificacion)
+
         # Stacked widget para páginas
         self.stack = AnimatedStackedWidget()
         self.menu_principal = crear_pagina_menu()
@@ -334,13 +364,11 @@ class Dashboard(QMainWindow):
         )
         self.stack.addWidget(self.page_arqueo)  # 5
 
-        # Página Facturas (Placeholder)
-        self.page_facturas = QWidget()
-        layout_facturas = QVBoxLayout(self.page_facturas)
-        lbl_facturas = QLabel("Gestión de Facturas (Próximamente)")
-        lbl_facturas.setAlignment(Qt.AlignCenter)
-        lbl_facturas.setStyleSheet("font-size: 20px; color: #636e72;")
-        layout_facturas.addWidget(lbl_facturas)
+        # Página Facturas
+        self.page_facturas = crear_pagina_facturas()
+        self.page_facturas.btn_volver.clicked.connect(
+            lambda: self.stack.setCurrentIndex(0)
+        )
         self.stack.addWidget(self.page_facturas)  # 6
 
         # Página Ingreso de Mercadería
@@ -384,6 +412,9 @@ class Dashboard(QMainWindow):
         self.timer_reloj.timeout.connect(self.actualizar_reloj)
         self.timer_reloj.start(1000)
         self.actualizar_reloj()
+
+        # Verificar stock bajo al iniciar
+        QTimer.singleShot(2000, self.verificar_stock_bajo)
 
     def cargar_preferencias(self):
         try:
@@ -439,6 +470,26 @@ class Dashboard(QMainWindow):
         # Actualizar botones del sidebar para corregir color de texto
         self.actualizar_botones_sidebar(self.stack.currentIndex())
         self.guardar_preferencias()
+
+    def verificar_stock_bajo(self):
+        try:
+            with sqlite3.connect("reuso.db") as conn:
+                cursor = conn.cursor()
+                # Verificar si existe la tabla productos antes de consultar
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='productos'"
+                )
+                if cursor.fetchone():
+                    cursor.execute("SELECT COUNT(*) FROM productos WHERE stock < 5")
+                    count = cursor.fetchone()[0]
+
+                    if count > 0:
+                        self.lbl_notificacion.setText(
+                            f"⚠️ Alerta de Inventario: Hay {count} productos con stock bajo (menos de 5 unidades)."
+                        )
+                        self.frame_notificacion.setVisible(True)
+        except Exception as e:
+            print(f"Error verificando stock: {e}")
 
     # ========================================================
     # FUNCIONES
