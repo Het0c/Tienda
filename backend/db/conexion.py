@@ -21,3 +21,42 @@ def conectar_db():
     db_path = os.path.join(base_dir, "..", "..", "reuso.db")  # Ajusta según tu estructura
     print("Conectando a:", os.path.abspath(db_path))  # Para depurar
     return sqlite3.connect(db_path)
+
+
+import mysql.connector
+
+def obtener_rut_usuario(usuario):
+    """
+    Consulta la base de datos MySQL y devuelve el RUT del usuario.
+    
+    :param usuario: nombre de usuario (string)
+    :return: rut (string) o None si no existe
+    """
+    try:
+        # Conexión a la base de datos
+        conn = mysql.connector.connect(
+        host="localhost",
+        port=3306,
+        user="root",
+        password="tuclave",
+        database="tienda_online"
+        )
+        cursor = conn.cursor()
+
+        # Consulta: suponemos que tu tabla se llama 'usuarios'
+        query = "SELECT rut, digito_ver, nombre, id_rol, password FROM tienda_online.usuario WHERE rut = %s"
+        cursor.execute(query, (usuario,))
+
+        resultado = cursor.fetchone()
+
+        cursor.close()
+        conn.close()
+
+        if resultado:
+            return resultado[0]  # El RUT
+        else:
+            return None
+
+    except mysql.connector.Error as err:
+        print(f"Error al consultar la base de datos: {err}")
+        return None

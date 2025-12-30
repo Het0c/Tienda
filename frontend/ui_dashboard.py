@@ -203,44 +203,49 @@ class Dashboard(QMainWindow):
         contenido_layout.addLayout(menu_layout)
 
         # Stacked widget para páginas
+        # Stacked widget para páginas
         self.stack = AnimatedStackedWidget()
         self.menu_principal = crear_pagina_menu()
         self.menu_principal.navegar.connect(self.navegar_desde_menu)
         self.stack.currentChanged.connect(self.actualizar_botones_sidebar)
         self.stack.addWidget(self.menu_principal)  # 0
-
-        # Páginas con botón volver
+        
+        # Inventario (no necesita sesión)
         self.page_inventario = crear_pagina_inventario()
         self.page_inventario.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_inventario)  # 1
-
-        self.page_ventas = crear_pagina_ventas()
+        
+        # Ventas (sí necesita sesión, para usar rut del empleado)
+        self.page_ventas = crear_pagina_ventas(self.sesion)
         self.page_ventas.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_ventas)  # 2
-
-        self.page_clientes = crear_pagina_clientes()
+        
+        # Clientes (sí necesita sesión)
+        self.page_clientes = crear_pagina_clientes(self.sesion)
         self.page_clientes.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_clientes)  # 3
-
-        self.page_grafico = crear_pagina_grafico()
+        
+        # Gráfico (puede necesitar sesión si filtras por usuario)
+        self.page_grafico = crear_pagina_grafico(self.sesion)
         self.page_grafico.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_grafico)  # 4
-
-        self.page_arqueo = crear_pagina_arqueo()
+        
+        # Arqueo (sí necesita sesión)
+        self.page_arqueo = crear_pagina_arqueo(self.sesion)
         self.page_arqueo.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_arqueo)  # 5
-
-        # Página Facturas (Placeholder)
+        
+        # Facturas (placeholder)
         self.page_facturas = QWidget()
         layout_facturas = QVBoxLayout(self.page_facturas)
         lbl_facturas = QLabel("Gestión de Facturas (Próximamente)")
@@ -248,17 +253,18 @@ class Dashboard(QMainWindow):
         lbl_facturas.setStyleSheet("font-size: 20px; color: #636e72;")
         layout_facturas.addWidget(lbl_facturas)
         self.stack.addWidget(self.page_facturas)  # 6
-
-        # Página Ingreso de Mercadería
-        self.page_ingreso = crear_pagina_ingreso()
+        
+        # Ingreso de Mercadería (sí necesita sesión)
+        self.page_ingreso = crear_pagina_ingreso(self.sesion)
         self.page_ingreso.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_ingreso)  # 7
-
+        
         self.stack.setCurrentIndex(0)
-
         contenido_layout.addWidget(self.stack)
+
+ 
 
         # ===============================
         # CONECTAR BOTONES

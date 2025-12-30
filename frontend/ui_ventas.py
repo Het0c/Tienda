@@ -100,8 +100,13 @@ def seleccionar_metodo(seleccionado, todos, frame_efectivo):
     frame_efectivo.setVisible(seleccionado.text() == "Efectivo")
 
 
-#  Página de ventas
-def crear_pagina_ventas():
+def crear_pagina_ventas(sesion):
+    pagina = QWidget()
+    layout = QVBoxLayout(pagina)
+    pagina.setLayout(layout)
+
+    lbl = QLabel(f"Página de Ventas - Empleado RUT: {sesion.rut}")
+    layout.addWidget(lbl)
 
     pagina = QWidget()
     pagina.setWindowTitle("Registro de Ventas")
@@ -128,6 +133,7 @@ def crear_pagina_ventas():
     layout_izquierda = QVBoxLayout(seccion_izquierda)
 
     # Botón Volver
+   
     btn_volver = QPushButton("⬅ Volver al Menú")
     btn_volver.setCursor(Qt.PointingHandCursor)
     btn_volver.setFixedWidth(160)
@@ -136,7 +142,8 @@ def crear_pagina_ventas():
     )
     layout_izquierda.addWidget(btn_volver, alignment=Qt.AlignLeft)
     pagina.btn_volver = btn_volver
-
+    layout.addWidget(btn_volver)
+    pagina.btn_volver = btn_volver
     etiqueta = QLabel("Registro de Ventas")
     etiqueta.setAlignment(Qt.AlignCenter)
     etiqueta.setStyleSheet("font-size: 18px; font-weight: bold; color: #2D3436;")
@@ -487,6 +494,7 @@ def crear_pagina_ventas():
     """
     )
 
+
     def abrir_pago():
         # Detectar método de pago
         if btn_efectivo.isChecked():
@@ -502,10 +510,8 @@ def crear_pagina_ventas():
         valor_descuento = combo_descuento.currentData()
         descuento_total = subtotal * valor_descuento
 
-        # Obtener rut del empleado desde sesión
-        from frontend.login import ss
-
-        rut_empleado = ss.usuario
+        # Obtener rut del empleado desde la sesión
+        rut_empleado = sesion.rut
 
         pagina.ventana_pago = VentanaPago(
             subtotal=subtotal,
@@ -515,21 +521,3 @@ def crear_pagina_ventas():
             rut_empleado=rut_empleado,
         )
         pagina.ventana_pago.show()
-
-    # 👇 Conectar después de definir todo
-    boton_pagar.clicked.connect(abrir_pago)
-    layout_derecha.addWidget(boton_pagar)
-
-    layout_principal.addWidget(seccion_izquierda)
-    layout_principal.addWidget(seccion_derecha)
-
-    return pagina
-
-
-# Ejecutar la ventana de ventas
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    ventana = crear_pagina_ventas()
-    ventana.show()
-
-    sys.exit(app.exec_())

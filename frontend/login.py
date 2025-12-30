@@ -145,25 +145,19 @@ class LoginWindow(QWidget):
         psswd = self.pass_input.text().strip()
 
         if not usr or not psswd:
-            if debug:
-                self.ss.iniciar_sesion("demo", False)
-                self.on_login_success(self.ss)
-                self.close()
-                QMessageBox.warning(
-                    self, "Modo debug", "Solo presentado en la versión Demo."
-                )
-                return
-            else:
+
                 QMessageBox.warning(
                     self, "Campos incompletos", "Por favor completa todos los campos."
                 )
                 return
-
+        from backend.logica.user import verificar_contraseña, verificacion_admin
+        from backend.db.conexion import obtener_rut_usuario
         if verificar_contraseña(usr, psswd):
-            es_admin = verificacion_admin(usr)
-            self.ss.iniciar_sesion(usr, es_admin)
+            rut = obtener_rut_usuario(usr)   # función que consulta la BD
+            self.ss.iniciar_sesion(usr, rut)
             self.on_login_success(self.ss)
             self.close()
+
         else:
             QMessageBox.critical(
                 self, "Campos incorrectos", "Usuario o contraseña incorrectos."
