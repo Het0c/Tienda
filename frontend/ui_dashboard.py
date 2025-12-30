@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QFrame,
     QLabel,
 )
+from PyQt5.QtGui import QIcon, QPixmap
 from PyQt5.QtCore import (
     Qt,
     QPropertyAnimation,
@@ -15,7 +16,14 @@ from PyQt5.QtCore import (
     QTimer,
     QParallelAnimationGroup,
     QPoint,
+    QSize,
+    QTime,
+    QDate,
+    QLocale,
 )
+import json
+import os
+import sqlite3
 
 # Importar páginas
 from frontend.ui_inventario import crear_pagina_inventario
@@ -25,6 +33,7 @@ from frontend.ui_grafico import crear_pagina_grafico
 from frontend.ui_arqueo import crear_pagina_arqueo
 from frontend.ui_menu_principal import crear_pagina_menu
 from frontend.ui_ingreso import crear_pagina_ingreso
+from frontend.ui_facturas import crear_pagina_facturas
 from frontend.estilos import aplicar_estilos
 
 
@@ -98,14 +107,29 @@ class AnimatedStackedWidget(QStackedWidget):
         self.anim_group.start()
 
 
+class Sidebar(QFrame):
+    def enterEvent(self, event):
+        if hasattr(self.window(), "animar_sidebar"):
+            self.window().animar_sidebar(True)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        if hasattr(self.window(), "animar_sidebar"):
+            self.window().animar_sidebar(False)
+        super().leaveEvent(event)
+
+
 class Dashboard(QMainWindow):
     def __init__(self, sesion):
         super().__init__()
         self.sesion = sesion
+        self.sidebar_expandido = False
+        self.tema_actual = "dark"
+        self.cargar_preferencias()
         self.setWindowTitle("Sistema de Ventas")
         self.setMinimumSize(1000, 600)
 
-        aplicar_estilos(self)
+        aplicar_estilos(self, self.tema_actual)
 
         # ===============================
         # LAYOUT BASE
@@ -118,30 +142,57 @@ class Dashboard(QMainWindow):
         # ===============================
         # SIDEBAR
         # ===============================
-        self.sidebar = QFrame()
+        self.sidebar = Sidebar()
         self.sidebar.setObjectName("sidebar")
         self.sidebar.setMinimumWidth(0)
-        self.sidebar.setMaximumWidth(0)  # cerrado al inicio
-        self.sidebar.setStyleSheet("background-color: #2D3436;")
+        self.sidebar.setMaximumWidth(0)  # Inicia oculto para la animación
+
+        if self.tema_actual == "dark":
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar {
+                    background-color: #dcdcdc;
+                    border-right: 1px solid #dcdde1;
+                }
+            """
+            )
+        else:
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar {
+                    background-color: #2D3436;
+                    border-right: 1px solid #444;
+                }
+            """
+            )
 
         sidebar_layout = QVBoxLayout(self.sidebar)
-        sidebar_layout.setContentsMargins(10, 10, 10, 10)
-        sidebar_layout.setSpacing(10)
+        sidebar_layout.setContentsMargins(5, 10, 5, 10)
+        sidebar_layout.setSpacing(20)
 
         # ===============================
         # BOTONES DEL SIDEBAR
         # ===============================
         # Botones principales
-        self.btn_menu_principal = QPushButton(" Menú Principal")
-        self.btn_inventario = QPushButton(" Inventario")
-        self.btn_ventas = QPushButton(" Ventas")
-        self.btn_arqueo = QPushButton(" Arqueo")
-        self.btn_facturas = QPushButton(" Facturas")
-        self.btn_ingreso = QPushButton(" Ingreso Mercadería")
-        self.btn_usuarios = QPushButton(" Usuarios")  # solo admin
-        self.btn_graficos = QPushButton(" Dashboard")  # solo admin
-        self.btn_logout = QPushButton(" Cerrar sesión")
-        self.btn_salir = QPushButton(" Salir")
+        def crear_boton(texto, icon_name):
+            btn = QPushButton(f"  {texto}")
+            btn.setToolTip(texto)
+            # Se asume que los iconos están en frontend/assets/
+            ruta_icon = os.path.join(os.path.dirname(__file__), "assets", icon_name)
+            btn.setIcon(QIcon(ruta_icon))
+            btn.setIconSize(QSize(24, 24))
+            return btn
+
+        self.btn_menu_principal = crear_boton("Menú Principal", "menuside.png")
+        self.btn_inventario = crear_boton("Inventario", "InventarioIcono.png")
+        self.btn_ventas = crear_boton("Ventas", "VentasIcono.png")
+        self.btn_arqueo = crear_boton("Informes", "InformesIcono.png")
+        self.btn_facturas = crear_boton("Facturas", "FacturasIcono.png")
+        self.btn_ingreso = crear_boton("Ingreso Mercadería", "Mercaderia.png")
+        self.btn_usuarios = crear_boton("Clientas", "Usuarias.png")
+        self.btn_graficos = crear_boton("Dashboard", "chart.png")
+        self.btn_logout = crear_boton("Cerrar Sesión", "logout.png")
+        self.btn_salir = crear_boton("Salir", "salir.png")
 
         # Agregar botones principales
         for btn in [
@@ -164,16 +215,16 @@ class Dashboard(QMainWindow):
         # Estilo base para botones de salida (no cambian de estado activo)
         estilo_salida = """
             QPushButton {
-                background-color: #2D3436;
-                color: white;
-                padding: 15px;
+                background-color: transparent;
+                color: #2D3436;
+                padding: 15px 10px;
                 font-size: 18px;
                 text-align: left;
                 border: none;
                 border-radius: 5px;
             }
             QPushButton:hover {
-                background-color: #636e72;
+                background-color: #dcdde1;
             }
         """
         self.btn_logout.setStyleSheet(estilo_salida)
@@ -192,20 +243,93 @@ class Dashboard(QMainWindow):
 
         # Botón hamburguesa
         menu_layout = QHBoxLayout()
-        self.btn_menu = QPushButton("☰")
+        self.btn_menu = QPushButton()
+        ruta_menu = os.path.join(os.path.dirname(__file__), "assets", "menu.png")
+        self.btn_menu.setIcon(QIcon(ruta_menu))
+        self.btn_menu.setIconSize(QSize(28, 28))
         self.btn_menu.setFixedSize(40, 40)
-        self.btn_menu.setStyleSheet(
-            "font-size: 20px; background-color: #dfe6e9; border-radius: 6px;"
-        )
+        self.btn_menu.setStyleSheet("background-color: #dfe6e9; border-radius: 6px;")
         self.btn_menu.clicked.connect(self.toggle_sidebar)
         menu_layout.addWidget(self.btn_menu)
-        menu_layout.setAlignment(Qt.AlignLeft)
+
+        # Botón Toggle Tema
+        self.btn_tema = QPushButton()
+        ruta_modes = os.path.join(os.path.dirname(__file__), "assets", "modes.png")
+        self.btn_tema.setIcon(QIcon(ruta_modes))
+        self.btn_tema.setIconSize(QSize(28, 28))
+        self.btn_tema.setFixedSize(40, 40)
+        self.btn_tema.setStyleSheet("background-color: #dfe6e9; border-radius: 6px;")
+        self.btn_tema.clicked.connect(self.toggle_tema)
+        menu_layout.addWidget(self.btn_tema)
+
+        menu_layout.addStretch()
+
+        # Reloj Digital
+        self.clock_container = QFrame()
+        self.clock_container.setStyleSheet(
+            """
+            QFrame {
+                background-color: #2D3436;
+                border-radius: 10px;
+                padding: 4px 12px;
+                border: 1px solid #444;
+            }
+        """
+        )
+        clock_layout = QVBoxLayout(self.clock_container)
+        clock_layout.setContentsMargins(0, 0, 0, 0)
+        clock_layout.setSpacing(0)
+
+        self.lbl_hora = QLabel()
+        self.lbl_hora.setAlignment(Qt.AlignCenter)
+        self.lbl_hora.setStyleSheet(
+            "font-size: 42px; font-weight: bold; color: #F4D03F; font-family: 'Segoe UI'; border: none;"
+        )
+
+        self.lbl_fecha = QLabel()
+        self.lbl_fecha.setAlignment(Qt.AlignCenter)
+        self.lbl_fecha.setStyleSheet(
+            "font-size: 18px; color: #dfe6e9; font-weight: 500; border: none;"
+        )
+
+        clock_layout.addWidget(self.lbl_hora)
+        clock_layout.addWidget(self.lbl_fecha)
+        menu_layout.addWidget(self.clock_container)
         contenido_layout.addLayout(menu_layout)
+
+        # Notificaciones de Stock Bajo
+        self.frame_notificacion = QFrame()
+        self.frame_notificacion.setVisible(False)
+        self.frame_notificacion.setStyleSheet(
+            """
+            QFrame { background-color: #e17055; border-radius: 8px; margin-bottom: 10px; }
+            QLabel { color: white; font-weight: bold; font-size: 14px; }
+            QPushButton { background-color: transparent; color: white; font-weight: bold; border: none; font-size: 16px; }
+            QPushButton:hover { color: #dfe6e9; }
+        """
+        )
+        layout_notif = QHBoxLayout(self.frame_notificacion)
+        layout_notif.setContentsMargins(15, 10, 15, 10)
+
+        self.lbl_notificacion = QLabel()
+        btn_cerrar_notif = QPushButton("✕")
+        btn_cerrar_notif.setFixedSize(30, 30)
+        btn_cerrar_notif.setCursor(Qt.PointingHandCursor)
+        btn_cerrar_notif.clicked.connect(
+            lambda: self.frame_notificacion.setVisible(False)
+        )
+
+        layout_notif.addWidget(self.lbl_notificacion)
+        layout_notif.addStretch()
+        layout_notif.addWidget(btn_cerrar_notif)
+
+        contenido_layout.addWidget(self.frame_notificacion)
 
         # Stacked widget para páginas
         # Stacked widget para páginas
         self.stack = AnimatedStackedWidget()
         self.menu_principal = crear_pagina_menu()
+        self.menu_principal.cambiar_tema(self.tema_actual)
         self.menu_principal.navegar.connect(self.navegar_desde_menu)
         self.stack.currentChanged.connect(self.actualizar_botones_sidebar)
         self.stack.addWidget(self.menu_principal)  # 0
@@ -244,6 +368,7 @@ class Dashboard(QMainWindow):
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_arqueo)  # 5
+<<<<<<< HEAD
         
         # Facturas (placeholder)
         self.page_facturas = QWidget()
@@ -252,6 +377,14 @@ class Dashboard(QMainWindow):
         lbl_facturas.setAlignment(Qt.AlignCenter)
         lbl_facturas.setStyleSheet("font-size: 20px; color: #636e72;")
         layout_facturas.addWidget(lbl_facturas)
+=======
+
+        # Página Facturas
+        self.page_facturas = crear_pagina_facturas()
+        self.page_facturas.btn_volver.clicked.connect(
+            lambda: self.stack.setCurrentIndex(0)
+        )
+>>>>>>> origin/main
         self.stack.addWidget(self.page_facturas)  # 6
         
         # Ingreso de Mercadería (sí necesita sesión)
@@ -291,15 +424,132 @@ class Dashboard(QMainWindow):
         QTimer.singleShot(30, self._fix_dashboard_window)
         self.actualizar_botones_sidebar(0)
 
+        # Iniciar reloj
+        self.timer_reloj = QTimer(self)
+        self.timer_reloj.timeout.connect(self.actualizar_reloj)
+        self.timer_reloj.start(1000)
+        self.actualizar_reloj()
+
+        # Verificar stock bajo al iniciar
+        QTimer.singleShot(2000, self.verificar_stock_bajo)
+
+    def cargar_preferencias(self):
+        try:
+            with open("config.json", "r") as f:
+                data = json.load(f)
+                self.tema_actual = data.get("tema", "dark")
+        except:
+            self.tema_actual = "dark"
+
+    def guardar_preferencias(self):
+        try:
+            with open("config.json", "w") as f:
+                json.dump({"tema": self.tema_actual}, f)
+        except Exception as e:
+            print(f"Error guardando preferencias: {e}")
+
+    def toggle_tema(self):
+        if self.tema_actual == "light":
+            self.tema_actual = "dark"
+        else:
+            self.tema_actual = "light"
+
+        # Aplicar estilos globales
+        aplicar_estilos(self, self.tema_actual)
+
+        # Actualizar fondo del menú principal
+        self.menu_principal.cambiar_tema(self.tema_actual)
+
+        # Actualizar estilos locales (Sidebar y Reloj)
+        if self.tema_actual == "dark":
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar { background-color: #dcdcdc; border-right: 1px solid #dcdde1; }
+            """
+            )
+            self.clock_container.setStyleSheet(
+                """
+                QFrame { background-color: #2D3436; border-radius: 10px; padding: 4px 12px; border: 1px solid #444; }
+            """
+            )
+        else:
+            self.sidebar.setStyleSheet(
+                """
+                QFrame#sidebar { background-color: #2D3436; border-right: 1px solid #444; }
+            """
+            )
+            self.clock_container.setStyleSheet(
+                """
+                QFrame { background-color: #2D3436; border-radius: 10px; padding: 4px 12px; border: 1px solid #444; }
+            """
+            )
+
+        # Actualizar botones del sidebar para corregir color de texto
+        self.actualizar_botones_sidebar(self.stack.currentIndex())
+        self.guardar_preferencias()
+
+    def verificar_stock_bajo(self):
+        try:
+            with sqlite3.connect("reuso.db") as conn:
+                cursor = conn.cursor()
+                # Verificar si existe la tabla productos antes de consultar
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='productos'"
+                )
+                if cursor.fetchone():
+                    cursor.execute("SELECT COUNT(*) FROM productos WHERE stock < 5")
+                    count = cursor.fetchone()[0]
+
+                    if count > 0:
+                        self.lbl_notificacion.setText(
+                            f"⚠️ Alerta de Inventario: Hay {count} productos con stock bajo (menos de 5 unidades)."
+                        )
+                        self.frame_notificacion.setVisible(True)
+        except Exception as e:
+            print(f"Error verificando stock: {e}")
+
     # ========================================================
     # FUNCIONES
     # ========================================================
     def _fix_dashboard_window(self):
+        self.setWindowOpacity(0.0)  # Iniciar invisible para la transición
         self.setWindowState(Qt.WindowNoState)
         self.showNormal()
         self.raise_()
         self.activateWindow()
-        QTimer.singleShot(50, lambda: self.setWindowState(Qt.WindowMaximized))
+
+        def animar_entrada():
+            self.setWindowState(Qt.WindowMaximized)
+
+            # Animación de Opacidad
+            self.anim_intro = QPropertyAnimation(self, b"windowOpacity")
+            self.anim_intro.setDuration(500)  # 0.5 segundos de fade-in
+            self.anim_intro.setStartValue(0.0)
+            self.anim_intro.setEndValue(1.0)
+            self.anim_intro.setEasingCurve(QEasingCurve.OutQuad)
+
+            # Animación del Sidebar (Slide In)
+            self.anim_sidebar_intro = QPropertyAnimation(self.sidebar, b"maximumWidth")
+            self.anim_sidebar_intro.setDuration(700)
+            self.anim_sidebar_intro.setStartValue(0)
+            self.anim_sidebar_intro.setEndValue(70)
+            self.anim_sidebar_intro.setEasingCurve(QEasingCurve.OutBack)
+
+            self.group_intro = QParallelAnimationGroup()
+            self.group_intro.addAnimation(self.anim_intro)
+            self.group_intro.addAnimation(self.anim_sidebar_intro)
+            self.group_intro.start()
+
+        QTimer.singleShot(50, animar_entrada)
+
+    def actualizar_reloj(self):
+        hora = QTime.currentTime().toString("HH:mm:ss")
+        # Formato de fecha más elaborado en español (ej: "Viernes 26 de Diciembre")
+        fecha = QLocale(QLocale.Spanish).toString(
+            QDate.currentDate(), "dddd d 'de' MMMM"
+        )
+        self.lbl_hora.setText(hora)
+        self.lbl_fecha.setText(fecha.capitalize())
 
     def cerrar_sesion(self):
         from frontend.login import LoginWindow
@@ -319,14 +569,34 @@ class Dashboard(QMainWindow):
 
     def toggle_sidebar(self):
         ancho_actual = self.sidebar.maximumWidth()
-        ancho_destino = 300 if ancho_actual == 0 else 0
-        anim = QPropertyAnimation(self.sidebar, b"maximumWidth")
-        anim.setDuration(400)
-        anim.setStartValue(ancho_actual)
-        anim.setEndValue(ancho_destino)
-        anim.setEasingCurve(QEasingCurve.InOutQuad)
-        anim.start()
-        self.animacion_sidebar = anim  # evita garbage collection
+        # Si está expandido (o cerca), colapsar a 70. Si no, expandir a 250.
+        self.animar_sidebar(expand=(ancho_actual < 150))
+
+    def animar_sidebar(self, expand):
+        ancho_destino = 250 if expand else 70
+
+        if hasattr(self, "anim_sidebar"):
+            self.anim_sidebar.stop()
+
+        if not expand:
+            self.sidebar_expandido = False
+            self.actualizar_botones_sidebar(self.stack.currentIndex())
+
+        self.anim_sidebar = QPropertyAnimation(self.sidebar, b"maximumWidth")
+        self.anim_sidebar.setDuration(300)
+        self.anim_sidebar.setStartValue(self.sidebar.width())
+        self.anim_sidebar.setEndValue(ancho_destino)
+        self.anim_sidebar.setEasingCurve(QEasingCurve.OutQuad)
+
+        if expand:
+
+            def on_finished():
+                self.sidebar_expandido = True
+                self.actualizar_botones_sidebar(self.stack.currentIndex())
+
+            self.anim_sidebar.finished.connect(on_finished)
+
+        self.anim_sidebar.start()
 
     def actualizar_botones_sidebar(self, index):
         mapping = {
@@ -342,34 +612,45 @@ class Dashboard(QMainWindow):
 
         btn_activo = mapping.get(index)
 
+        # Determinar color de texto base según el tema
+        if self.tema_actual == "dark":
+            base_text_color = "#2D3436"
+            hover_color = "#dcdde1"
+        else:
+            base_text_color = "white"
+            hover_color = "#636e72"
+
+        color_texto = base_text_color if self.sidebar_expandido else "transparent"
+        color_texto_activo = "#2D3436" if self.sidebar_expandido else "transparent"
+
         # Estilo base
-        estilo_base = """
-            QPushButton {
-                background-color: #2D3436;
-                color: white;
-                padding: 15px;
+        estilo_base = f"""
+            QPushButton {{
+                background-color: transparent;
+                color: {color_texto};
+                padding: 15px 10px;
                 font-size: 18px;
                 text-align: left;
                 border: none;
                 border-radius: 5px;
-            }
-            QPushButton:hover {
-                background-color: #636e72;
-            }
+            }}
+            QPushButton:hover {{
+                background-color: {hover_color};
+            }}
         """
 
         # Estilo activo (resaltado)
-        estilo_activo = """
-            QPushButton {
+        estilo_activo = f"""
+            QPushButton {{
                 background-color: #F4D03F;
-                color: #2D3436;
-                padding: 15px;
+                color: {color_texto_activo};
+                padding: 15px 10px;
                 font-size: 18px;
                 text-align: left;
                 border: none;
                 border-radius: 5px;
                 font-weight: bold;
-            }
+            }}
         """
 
         for btn in mapping.values():
@@ -378,6 +659,26 @@ class Dashboard(QMainWindow):
                     btn.setStyleSheet(estilo_activo)
                 else:
                     btn.setStyleSheet(estilo_base)
+
+        # Actualizar botones de salida
+        self.btn_logout.setStyleSheet(estilo_base)
+
+        # Estilo especial para Salir (Rojo suave)
+        estilo_salir = f"""
+            QPushButton {{
+                background-color: #ff7675;
+                color: {color_texto};
+                padding: 15px 10px;
+                font-size: 18px;
+                text-align: left;
+                border: none;
+                border-radius: 5px;
+            }}
+            QPushButton:hover {{
+                background-color: #d63031;
+            }}
+        """
+        self.btn_salir.setStyleSheet(estilo_salir)
 
     def navegar_desde_menu(self, accion):
         rutas = {
