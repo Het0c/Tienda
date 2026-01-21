@@ -29,10 +29,8 @@ def obtener_producto_por_codigo(codigo_barra):
     conn = conectar_db()
     cursor = conn.cursor()
 
-    cursor.execute("""SELECT s.nombreSeccionRopa ||" de " || f.nombreFamilia,precio  FROM seccionropa s 
-    INNER JOIN rangoPrecio r ON s.idSeccionRopa = r.idSeccionRopa
-    INNER JOIN familiaRopa f ON f.idFamiliaRopa = s.idFamiliaRopa
-    WHERE r.codigoBarra = ?""", (codigo_barra,))
+    cursor.execute("""SELECT nombre ,precio  FROM prenda
+    WHERE id_prenda = ?""", (codigo_barra,))
     prenda = cursor.fetchone()
 
     conn.close()

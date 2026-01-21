@@ -156,13 +156,8 @@ def seleccionar_metodo(seleccionado, todos, frame_efectivo):
     frame_efectivo.setVisible(seleccionado.text() == "Efectivo")
 
 
+#  Página de ventas
 def crear_pagina_ventas(sesion):
-    pagina = QWidget()
-    layout = QVBoxLayout(pagina)
-    pagina.setLayout(layout)
-
-    lbl = QLabel(f"Página de Ventas - Empleado RUT: {sesion.rut}")
-    layout.addWidget(lbl)
 
     pagina = QWidget()
     pagina.setWindowTitle("Registro de Ventas")
@@ -180,8 +175,11 @@ def crear_pagina_ventas(sesion):
     layout_principal.setContentsMargins(40, 40, 40, 40)
     layout_principal.setSpacing(30)
 
+    
+
     # Sección izquierda
     seccion_izquierda = QFrame()
+    seccion_izquierda.setMinimumWidth(500)
     seccion_izquierda.setMinimumWidth(400)
     seccion_izquierda.setStyleSheet(
         "background-color: rgba(255,255,255,0.85); border-radius: 12px;"
@@ -189,7 +187,6 @@ def crear_pagina_ventas(sesion):
     layout_izquierda = QVBoxLayout(seccion_izquierda)
 
     # Botón Volver
-   
     btn_volver = QPushButton("⬅ Volver al Menú")
     btn_volver.setCursor(Qt.PointingHandCursor)
     btn_volver.setFixedWidth(160)
@@ -198,8 +195,7 @@ def crear_pagina_ventas(sesion):
     )
     layout_izquierda.addWidget(btn_volver, alignment=Qt.AlignLeft)
     pagina.btn_volver = btn_volver
-    layout.addWidget(btn_volver)
-    pagina.btn_volver = btn_volver
+
     etiqueta = QLabel("Registro de Ventas")
     etiqueta.setAlignment(Qt.AlignCenter)
     etiqueta.setStyleSheet("font-size: 18px; font-weight: bold; color: #2D3436;")
@@ -328,6 +324,7 @@ def crear_pagina_ventas(sesion):
 
     # Sección derecha
     seccion_derecha = QFrame()
+    seccion_derecha.setFixedWidth(400)
     seccion_derecha.setMinimumWidth(600)
     seccion_derecha.setStyleSheet(
         "background-color: rgba(255,255,255,0.85); border-radius: 12px;"
@@ -470,6 +467,7 @@ def crear_pagina_ventas(sesion):
     btn_credito = QPushButton("Crédito Girasol")
     btn_credito.setVisible(False)  # Oculto por defecto
 
+    botones = [btn_efectivo, btn_tarjeta, btn_transferencia]
     botones = [btn_efectivo, btn_tarjeta, btn_transferencia, btn_credito]
 
     for btn in botones:
@@ -745,7 +743,6 @@ def crear_pagina_ventas(sesion):
     """
     )
 
-
     def abrir_pago():
         # Detectar método de pago
         if btn_efectivo.isChecked():
@@ -772,8 +769,8 @@ def crear_pagina_ventas(sesion):
         valor_descuento = combo_descuento.currentData()
         descuento_total = subtotal * valor_descuento
 
-        # Obtener rut del empleado desde la sesión
-        rut_empleado = sesion.rut
+        # Obtener rut del empleado desde sesi
+        rut_empleado = sesion.usuario
 
         pagina.ventana_pago = VentanaPago(
             subtotal=subtotal,
@@ -789,6 +786,8 @@ def crear_pagina_ventas(sesion):
     boton_pagar.clicked.connect(abrir_pago)
     layout_derecha.addWidget(boton_pagar)
 
+    layout_principal.addWidget(seccion_izquierda)
+    layout_principal.addWidget(seccion_derecha)
     layout_principal.addWidget(seccion_izquierda, 1)
     layout_principal.addWidget(seccion_derecha, 2)
 
@@ -801,4 +800,3 @@ if __name__ == "__main__":
     ventana = crear_pagina_ventas()
     ventana.show()
 
-    sys.exit(app.exec_())

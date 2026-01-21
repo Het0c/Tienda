@@ -37,7 +37,7 @@ def obtener_rut_usuario(usuario):
         conn = mysql.connector.connect(
         host="localhost",
         port=3306,
-        user="root",
+        user="nuevo_usuario",
         password="tuclave",
         database="tienda_online"
         )
@@ -56,7 +56,26 @@ def obtener_rut_usuario(usuario):
             return resultado[0]  # El RUT
         else:
             return None
-
     except mysql.connector.Error as err:
         print(f"Error al consultar la base de datos: {err}")
         return None
+
+
+def conectar_mydb():
+    """
+    Consulta la base de datos MySQL y devuelve el RUT del usuario.
+    
+    :param usuario: nombre de usuario (string)
+    :return: rut (string) o None si no existe
+    """
+    return mysql.connector.connect(
+        # Conexión a la base de datos
+
+        host="localhost",
+        port=3306,
+        user="nuevo_usuario",
+        password="tuclave",
+        database="tienda_online"
+        ,
+        autocommit=True
+        )

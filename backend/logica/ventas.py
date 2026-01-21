@@ -1,4 +1,4 @@
-from backend.db.conexion import conectar_db
+from backend.db.conexion import conectar_db, conectar_mydb
 from datetime import datetime
 
 def busqueda_descuento():
@@ -147,3 +147,64 @@ def calcular_precio_total(precio_unitario, cantidad, es_trabajador):
     precio_con_descuento = aplicacion_descuento_trabajador(precio_unitario, es_trabajador)
     precio_total = precio_con_descuento * cantidad
     return round(precio_total, 2)
+
+
+    from datetime import datetime
+
+def registrar_venta(
+    subtotal,
+    productos,
+    descuento_total,
+    metodo_pago,
+    rut_empleado,
+):
+    conexion = conectar_mydb()
+    cursor = conexion.cursor()
+
+    try:
+        fecha = datetime.now()
+        total = subtotal - descuento_total
+
+        # 1️⃣ Insertar venta
+        sql_venta = """
+            INSERT INTO ventas (fecha, rut_empleado, metodo_pago, subtotal, descuento, total)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+        cursor.execute(
+            sql_venta,
+            (fecha, rut_empleado, metodo_pago, subtotal, descuento_total, total),
+        )
+
+        id_venta = cursor.lastrowid
+
+        # 2️⃣ Insertar detalle de venta
+        sql_detalle = """
+            INSERT INTO detalle_venta
+            (id_venta, id_producto, nombre_producto, cantidad, precio_unitario, total_producto)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """
+
+        for p in productos:
+            cursor.execute(
+                sql_detalle,
+                (
+                    id_venta,
+                    p["id"],              # id del producto
+                    p["nombre"],
+                    p["cantidad"],
+                    p["precio"],
+                    p["cantidad"] * p["precio"],
+                ),
+            )
+
+        conexion.commit()
+        return True
+
+    except Exception as e:
+        conexion.rollback()
+        print("Error al registrar venta:", e)
+        return False
+
+    finally:
+        cursor.close()
+        conexion.close()

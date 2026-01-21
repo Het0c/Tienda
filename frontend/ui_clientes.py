@@ -25,7 +25,7 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt5.QtGui import QTextDocument
 from PyQt5.QtCore import Qt
 from backend.logica.ventas import verificacion_encargado_local
-
+from backend.db.conexion import conectar_mydb
 
 # --- Base de Datos SQLite ---
 def init_db():
@@ -93,70 +93,47 @@ def actualizar_cliente_db(rut, nombre, telefono, direccion):
 
 
 def contar_clientes_db(filtro="", solo_deudores=False):
-    with sqlite3.connect("clientes.db") as conn:
-        cursor = conn.cursor()
-        query = "SELECT COUNT(*) FROM clientes"
-        params = []
-        conditions = []
+    conn = conectar_mydb()
+    cursor = conn.cursor()
 
-        if filtro:
-            f = f"%{filtro}%"
-            conditions.append("(nombre LIKE ? OR rut LIKE ?)")
-            params.extend([f, f])
+    query = "SELECT COUNT(*) FROM cliente"
+    params = []
 
-        if solo_deudores:
-            conditions.append(
-                "rut IN (SELECT rut_cliente FROM historial_credito WHERE (total - pie) > 0 AND (cuota1 != 'Pagada' OR cuota2 != 'Pagada'))"
-            )
+    if filtro:
+        query += " WHERE nombre LIKE %s OR rut LIKE %s"
+        params.extend([f"%{filtro}%", f"%{filtro}%"])
 
-        if conditions:
-            query += " WHERE " + " AND ".join(conditions)
+    cursor.execute(query, params)
+    total = cursor.fetchone()[0]
 
-        cursor.execute(query, params)
-        return cursor.fetchone()[0]
+    cursor.close()
+    conn.close()
+    return total
 
 
-def obtener_clientes_paginados(
-    pagina,
-    por_pagina,
-    filtro="",
-    orden_col="nombre",
-    orden_dir="ASC",
-    solo_deudores=False,
-):
+
+def obtener_clientes_paginados(pagina, por_pagina, filtro="", orden_col="nombre", orden_dir="ASC", solo_deudores=False):
     offset = (pagina - 1) * por_pagina
+    conn = conectar_mydb()
+    cursor = conn.cursor()
 
-    valid_cols = ["nombre", "rut", "telefono", "direccion"]
-    if orden_col not in valid_cols:
-        orden_col = "nombre"
-    if orden_dir not in ["ASC", "DESC"]:
-        orden_dir = "ASC"
+    query = "SELECT nombre, rut ||'-'|| digito_ver, celular, direccion FROM cliente"
+    params = []
 
-    with sqlite3.connect("clientes.db") as conn:
-        cursor = conn.cursor()
+    if filtro:
+        query += " WHERE nombre LIKE %s OR rut LIKE %s"
+        params.extend([f"%{filtro}%", f"%{filtro}%"])
 
-        base_query = "SELECT nombre, rut, telefono, direccion FROM clientes"
-        params = []
-        conditions = []
+    query += f" ORDER BY {orden_col} {orden_dir} LIMIT %s OFFSET %s"
+    params.extend([por_pagina, offset])
 
-        if filtro:
-            f = f"%{filtro}%"
-            conditions.append("(nombre LIKE ? OR rut LIKE ?)")
-            params.extend([f, f])
+    cursor.execute(query, params)
+    data = cursor.fetchall()
 
-        if solo_deudores:
-            conditions.append(
-                "rut IN (SELECT rut_cliente FROM historial_credito WHERE (total - pie) > 0 AND (cuota1 != 'Pagada' OR cuota2 != 'Pagada'))"
-            )
+    cursor.close()
+    conn.close()
+    return data
 
-        if conditions:
-            base_query += " WHERE " + " AND ".join(conditions)
-
-        base_query += f" ORDER BY {orden_col} {orden_dir} LIMIT ? OFFSET ?"
-        params.extend([por_pagina, offset])
-
-        cursor.execute(base_query, params)
-        return cursor.fetchall()
 
 
 def agregar_compra_db(rut, fecha, producto, total, pie):
@@ -746,7 +723,7 @@ class VentanaHistorial(QDialog):
 
 
 # --- Página de clientes con tabla ---
-def crear_pagina_clientes():
+def crear_pagina_clientes(sesion):
     pagina = QWidget()
 
     # Detectar tema al inicio

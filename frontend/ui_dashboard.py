@@ -347,7 +347,7 @@ class Dashboard(QMainWindow):
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_ventas)  # 2
-        
+        print(vars(self.sesion))
         # Clientes (sí necesita sesión)
         self.page_clientes = crear_pagina_clientes(self.sesion)
         self.page_clientes.btn_volver.clicked.connect(
@@ -356,19 +356,18 @@ class Dashboard(QMainWindow):
         self.stack.addWidget(self.page_clientes)  # 3
         
         # Gráfico (puede necesitar sesión si filtras por usuario)
-        self.page_grafico = crear_pagina_grafico(self.sesion)
+        self.page_grafico = crear_pagina_grafico()
         self.page_grafico.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_grafico)  # 4
         
         # Arqueo (sí necesita sesión)
-        self.page_arqueo = crear_pagina_arqueo(self.sesion)
+        self.page_arqueo = crear_pagina_arqueo()
         self.page_arqueo.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
         self.stack.addWidget(self.page_arqueo)  # 5
-<<<<<<< HEAD
         
         # Facturas (placeholder)
         self.page_facturas = QWidget()
@@ -377,18 +376,10 @@ class Dashboard(QMainWindow):
         lbl_facturas.setAlignment(Qt.AlignCenter)
         lbl_facturas.setStyleSheet("font-size: 20px; color: #636e72;")
         layout_facturas.addWidget(lbl_facturas)
-=======
-
-        # Página Facturas
-        self.page_facturas = crear_pagina_facturas()
-        self.page_facturas.btn_volver.clicked.connect(
-            lambda: self.stack.setCurrentIndex(0)
-        )
->>>>>>> origin/main
         self.stack.addWidget(self.page_facturas)  # 6
         
         # Ingreso de Mercadería (sí necesita sesión)
-        self.page_ingreso = crear_pagina_ingreso(self.sesion)
+        self.page_ingreso = crear_pagina_ingreso()
         self.page_ingreso.btn_volver.clicked.connect(
             lambda: self.stack.setCurrentIndex(0)
         )
