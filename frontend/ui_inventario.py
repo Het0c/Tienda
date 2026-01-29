@@ -217,13 +217,13 @@ def crear_pagina_inventario():
                 item.widget().deleteLater()
 
         prenda = [i["Prenda"] for i in inventario]
-        piso1 = [i["Primer piso"] for i in inventario]
-        piso2 = [i["Segundo Piso"] for i in inventario]
+        marca = [i["Marca"] for i in inventario]
+        precio = [i["Precio"] for i in inventario]
         total = [i["Total Stock"] for i in inventario]
 
         contenedor_layout.addLayout(crear_columna("Prenda", prenda))
-        contenedor_layout.addLayout(crear_columna("Primer piso", piso1))
-        contenedor_layout.addLayout(crear_columna("Segundo piso", piso2))
+        contenedor_layout.addLayout(crear_columna("Marca", marca))
+        contenedor_layout.addLayout(crear_columna("Precio", precio))
         contenedor_layout.addLayout(crear_columna("Total Stock", total))
 
     #  Función reactiva

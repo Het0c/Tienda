@@ -6,8 +6,8 @@ def consultar_inventario_ropa(search):
 
     cursor.execute("""
         SELECT *
-        FROM v_inventario
-        WHERE LOWER(prenda) LIKE LOWER(?)
+        FROM prenda
+        WHERE LOWER(nombre) LIKE LOWER(?)
     """, ('%' + search + '%',))
 
     resultados = cursor.fetchall()
@@ -15,11 +15,13 @@ def consultar_inventario_ropa(search):
 
     inventario = []
     for fila in resultados:
-        prenda, piso1, piso2, total = fila
+        id, prenda,tipo, marca, precio, total = fila
         inventario.append({
+            "id": id,
             "Prenda": prenda,
-            "Primer piso": piso1,
-            "Segundo Piso": piso2,
+            "tipo": tipo,
+            "Marca": marca,
+            "Precio": precio,
             "Total Stock": total
         })
     return inventario
