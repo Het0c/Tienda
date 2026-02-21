@@ -3,44 +3,125 @@
 <head>
     <meta charset="UTF-8">
     <title>Gestión de Roles</title>
+
     <style>
-        body { font-family: sans-serif; padding: 30px; background: #f4f7f6; }
-        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .btn-back { text-decoration: none; color: #3498db; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
-        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background: #3498db; color: white; }
-        .badge { padding: 5px 10px; border-radius: 4px; font-size: 12px; background: #e1f5fe; color: #01579b; }
+        body {
+            font-family: sans-serif;
+            padding: 30px;
+            background: #f4f7f6;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-back {
+            text-decoration: none;
+            color: #3498db;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background: #3498db;
+            color: white;
+        }
+
+        .badge {
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            background: #e1f5fe;
+            color: #01579b;
+        }
+
+        button {
+            padding: 6px 12px;
+            border: none;
+            background: #3498db;
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #2980b9;
+        }
     </style>
 </head>
+
 <body>
-    <div class="header">
-        <h1>👥 Roles de Usuario</h1>
-        <a href="/" class="btn-back">← Volver al Menú</a>
-    </div>
-    <table>
-        <thead>
-            <tr>
-                <th>Usuario</th>
-                <th>Rol</th>
-                <th>Permisos</th>
-                <th>Acciones</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td>Admin</td>
-                <td><span class="badge">Administrador</span></td>
-                <td>Acceso Total</td>
-                <td><button>Editar</button></td>
-            </tr>
-            <tr>
-                <td>Vendedor_01</td>
-                <td><span class="badge">Ventas</span></td>
-                <td>Facturación, Inventario</td>
-                <td><button>Editar</button></td>
-            </tr>
-        </tbody>
-    </table>
+
+<div class="header">
+    <h1>👥 Roles de Usuario</h1>
+    <a href="/" class="btn-back">← Volver al Menú</a>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+
+        </tr>
+    </thead>
+
+    <tbody>
+
+        {% for r in roles %}
+        <tr>
+            <td>{{ r.nombre }}</td>
+
+            <td>
+                <span class="badge">
+                    {{ r.id_rol }}
+                </span>
+            </td>
+
+
+            <td>
+                <button onclick="editar('{{ r.usuario }}')">
+                    Editar
+                </button>
+            </td>
+        </tr>
+        {% endfor %}
+
+        {% if roles|length == 0 %}
+        <tr>
+            <td colspan="4" style="text-align:center;">
+                No hay registros
+            </td>
+        </tr>
+        {% endif %}
+
+    </tbody>
+</table>
+
+
+<script>
+function editar(usuario){
+    alert("Editar usuario: " + usuario);
+    // Aquí puedes redirigir luego
+    // window.location = "/editar/" + usuario;
+}
+</script>
+
 </body>
 </html>

@@ -70,13 +70,14 @@ def roles():
     conn = get_connection()
     cursor = conn.cursor(dictionary=True)
     cursor.execute("""
-        SELECT rut, digito_ver, nombre, id_rol, password
+        SELECT nombre, id_rol
         FROM usuario;
     """)
     usuarios = cursor.fetchall()
     cursor.close()
     conn.close()
-    return render_template('roles.html', usuarios=usuarios)
+    print(usuarios)
+    return render_template('roles2.html', usuarios=usuarios)
     
 
 
