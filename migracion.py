@@ -25,25 +25,29 @@ def convertir_fila(row):
 
 # Firebird
 SELECT_CLIENTE = """
-SELECT
-    c.RUT_CLIENTE,
-    c.DIG_CLIENTE,
-    c.RAZON_SOC_CLIENTE,
-    c.FONO_CLIENTE,
-    c.DIRECCION_CLIENTE,
-    c.GIRO_CLIENTE,
-    c.FANTASIA_CLIENTE || ' , ' ||
-    c.OBS_CLIENTE || ' , ' ||
-    c.RELAC_COM_CLIENTE,
-    c.FONO
-FROM CLIENTE c
+SELECT 
+folio,
+cantidad,
+fd.PRECIO,
+fd.TOTAL,
+detalle,
+fd.CODIGOPRIN 
+FROM FACV_DET fd 
 """
 
 # Inserts
 INSERT_SQLITE = """
-INSERT INTO cliente
-(rut, digito_ver, nombre, celular, direccion, actividad_economica, descripcion)
-VALUES (?, ?, ?, ?, ?, ?, ?)
+insert into 
+  "detalleBoleta" (
+    "idBoleta", 
+    cantidad, 
+    "precioUnitario", 
+    "totalItem", 
+    detalle, 
+    "codigoProducto"
+  )
+
+VALUES (?, ?, ?, ?, ?, ?)
 """
 
 INSERT_MYSQL = """
@@ -75,7 +79,7 @@ if opcion not in ["1", "2"]:
 fb = fdb.connect(
     host="localhost",
     port=3050,
-    database="/data/DATOS001.GDB",
+    database="/data/DATOS001.gdb",
     user="SYSDBA",
     password="masterkey"
 )
@@ -146,7 +150,7 @@ db.commit()
 # Verificación
 # -------------------------
 
-cur.execute("SELECT COUNT(*) FROM cliente")
+cur.execute("SELECT COUNT(*) FROM boleta")
 total = cur.fetchone()[0]
 
 print("Total insertados:", total)
