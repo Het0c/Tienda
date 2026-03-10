@@ -25,67 +25,50 @@ from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt5.QtGui import QTextDocument
 from PyQt5.QtCore import Qt
 from backend.logica.ventas import verificacion_encargado_local
-from backend.db.conexion import conectar_mydb
-
-# --- Base de Datos SQLite ---
-def init_db():
-    with sqlite3.connect("clientes.db") as conn:
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS clientes (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT NOT NULL,
-                rut TEXT UNIQUE NOT NULL,
-                telefono TEXT,
-                direccion TEXT
-            )
-        """
-        )
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS historial_credito (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                rut_cliente TEXT NOT NULL,
-                fecha TEXT,
-                producto TEXT,
-                total INTEGER,
-                pie INTEGER,
-                cuota1 TEXT DEFAULT 'Pendiente',
-                cuota2 TEXT DEFAULT 'Pendiente',
-                FOREIGN KEY(rut_cliente) REFERENCES clientes(rut)
-            )
-        """
-        )
-        conn.commit()
+from backend.db.conexion import conectar_mydb, conectar_db
 
 
-def guardar_cliente_db(nombre, rut, telefono, direccion):
+
+from mysql.connector import errors
+
+def guardar_cliente_db(nombre, rut,dv, telefono, direccion):
     try:
-        with sqlite3.connect("clientes.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO clientes (nombre, rut, telefono, direccion) VALUES (?, ?, ?, ?)",
-                (nombre, rut, telefono, direccion),
-            )
-            conn.commit()
+        conn = conectar_mydb()
+        if conn is None:
+            return False
+
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO cliente (
+                rut, digito_ver, nombre, celular, direccion
+            ) VALUES (%s,%s,%s,%s,%s)
+        """, (rut, dv, nombre, telefono, direccion)) #cambiar direccion cuando se pueda front
+
         return True
-    except sqlite3.IntegrityError:
+
+    except errors.IntegrityError:
+        print("Cliente duplicado")
         return False
-    except Exception as e:
+
+    except errors.ProgrammingError as e:
+        print(f"Error SQL: {e}")
+        return False
+
+    except errors.DatabaseError as e:
         print(f"Error BD: {e}")
         return False
 
 
 def actualizar_cliente_db(rut, nombre, telefono, direccion):
     try:
-        with sqlite3.connect("clientes.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "UPDATE clientes SET nombre=?, telefono=?, direccion=? WHERE rut=?",
-                (nombre, telefono, direccion, rut),
-            )
-            conn.commit()
+        conn= conectar_mydb()
+        cursor = conn.cursor()
+        cursor.execute(
+            "UPDATE cliente SET nombre=%s, celular=%s, direccion=%s WHERE rut=%s",
+            (nombre, telefono, direccion, rut),
+        )
+        conn.commit()
         return True
     except Exception as e:
         print(f"Error actualizando cliente: {e}")
@@ -136,16 +119,18 @@ def obtener_clientes_paginados(pagina, por_pagina, filtro="", orden_col="nombre"
 
 
 
-def agregar_compra_db(rut, fecha, producto, total, pie):
+def agregar_compra_db(rut, fecha,boleta, total, pie):
     try:
-        with sqlite3.connect("clientes.db") as conn:
-            cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO historial_credito (rut_cliente, fecha, producto, total, pie) VALUES (?, ?, ?, ?, ?)",
-                (rut, fecha, producto, total, pie),
-            )
-            conn.commit()
-        return True
+        boleta=999999
+        conn=conectar_mydb()
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO hoja_credito (cliente, id_boleta, fecha_pago, cuotas_por_pagar, pie) VALUES (%s, %s, %s, %s,%s)",
+            (rut, boleta,fecha, total, pie),
+        )    #hoja_credito (cliente, detalle_boleta, fecha_pago, cuotas_por_pagar, estado, precio_cuota)
+
+        conn.commit()
+
     except Exception as e:
         print(f"Error BD Historial: {e}")
         return False
@@ -153,13 +138,13 @@ def agregar_compra_db(rut, fecha, producto, total, pie):
 
 def actualizar_cuota_db(id_compra, columna, estado):
     try:
-        with sqlite3.connect("clientes.db") as conn:
-            cursor = conn.cursor()
-            if columna not in ["cuota1", "cuota2"]:
-                return False
-            query = f"UPDATE historial_credito SET {columna} = ? WHERE id = ?"
-            cursor.execute(query, (estado, id_compra))
-            conn.commit()
+        conn=conectar_mydb()
+        cursor = conn.cursor()
+        if columna not in ["cuota1", "cuota2"]:
+            return False
+        query = f"UPDATE hoja_credito SET {columna} = %s WHERE id = %s"
+        cursor.execute(query, (estado, id_compra))
+        conn.commit()
         return True
     except Exception as e:
         print(f"Error actualizando cuota: {e}")
@@ -182,19 +167,19 @@ def eliminar_cliente_db(rut):
 
 
 def obtener_historial_db(rut):
-    with sqlite3.connect("clientes.db") as conn:
+        conn=conectar_mydb()
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT id, fecha, producto, total, pie, cuota1, cuota2 FROM historial_credito WHERE rut_cliente = ? ORDER BY id DESC",
+            "SELECT * FROM hoja_credito WHERE cliente = %s ORDER BY id DESC",
             (rut,),
         )
         return cursor.fetchall()
 
 
 def obtener_compra_db(id_compra):
-    with sqlite3.connect("clientes.db") as conn:
+        conn= conectar_mydb
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM historial_credito WHERE id = ?", (id_compra,))
+        cursor.execute("SELECT * FROM hoja_credito WHERE id = %s", (detalle_boleta,))
         return cursor.fetchone()
 
 
@@ -210,7 +195,6 @@ def calcular_deuda_cliente(rut):
         if c2 != "Pagada":
             deuda += valor_cuota
     return int(deuda)
-
 
 # --- Ventana para agregar nueva clienta ---
 class VentanaAgregarClienta(QDialog):
@@ -273,21 +257,47 @@ class VentanaAgregarClienta(QDialog):
         btn_guardar.clicked.connect(self.guardar)
         layout.addWidget(btn_guardar)
 
+        #formateo de rut en pantalla
+    def formatear_rut(self):
+        texto = self.input_rut.text().replace("-", "").upper()
+    
+        if len(texto) < 2:
+            return
+    
+        cuerpo = texto[:-1]
+        dv = texto[-1]
+    
+        rut_formateado = f"{cuerpo}-{dv}"
+    
+        self.input_rut.blockSignals(True)
+        self.input_rut.setText(rut_formateado)
+        self.input_rut.blockSignals(False) 
+
+
+
     def guardar(self):
+        rut_completo = self.input_rut.text().strip()
         nombre = self.input_nombre.text().strip()
-        rut = self.input_rut.text().strip()
         telefono = self.input_telefono.text().strip()
         direccion = self.input_direccion.text().strip()
 
-        if not nombre or not rut:
+        if not nombre or not rut_completo:
             QMessageBox.warning(
                 self, "Datos incompletos", "El Nombre y el RUT son obligatorios."
             )
             return
 
-        if guardar_cliente_db(nombre, rut, telefono, direccion):
+        if "-" not in rut_completo:
+            QMessageBox.warning(self, "RUT inválido", "Formato esperado: 12345678-9")
+            return
+
+        cuerpo, dv = rut_completo.split("-")
+
+        if guardar_cliente_db(nombre, cuerpo, dv, telefono, direccion):
+
             if self.callback_agregar:
-                self.callback_agregar(nombre, rut, telefono, direccion)
+                self.callback_agregar(nombre, rut_completo, telefono, direccion)
+
             self.accept()
         else:
             QMessageBox.warning(

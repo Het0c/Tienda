@@ -1,5 +1,5 @@
 import hashlib
-from backend.db.conexion import conectar_db
+from backend.db.conexion import conectar_db, conectar_mydb
 
 
 def hashear_contraseña(contraseña):
@@ -22,10 +22,10 @@ def registrar_contraseña(rut_empleado, contraseña):
     conn.close()
 
 def verificar_contraseña(rut_empleado, contraseña):
-    conn = conectar_db()
+    conn = conectar_mydb()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT pass FROM empleado WHERE rut = ?", (rut_empleado,))
+    cursor.execute("SELECT password FROM usuario WHERE rut = %s", (rut_empleado,))
     resultado = cursor.fetchone()
 
     if resultado is None:
@@ -37,10 +37,10 @@ def verificar_contraseña(rut_empleado, contraseña):
     return hash_almacenado == hash_ingresado
 
 def verificacion_admin(rut_empleado):
-    conn = conectar_db()
+    conn = conectar_mydb()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT idTipoEmpleado FROM empleado WHERE rut = ?", (rut_empleado,))
+    cursor.execute("SELECT idTipoEmpleado FROM empleado WHERE rut = %s", (rut_empleado,))
     resultado = cursor.fetchone()
 
     if resultado and resultado[0] == 1 or resultado and resultado[0] == 3:  # Suponiendo que el tipo de empleado 1 es admin

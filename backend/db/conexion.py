@@ -1,5 +1,7 @@
 import sqlite3
 import os
+import mysql.connector
+from mysql.connector import Error
 
 connection = sqlite3.connect('reuso.db')
 cursor = connection.cursor()
@@ -23,7 +25,6 @@ def conectar_db():
     return sqlite3.connect(db_path)
 
 
-import mysql.connector
 
 def obtener_rut_usuario(usuario):
     """
@@ -62,20 +63,17 @@ def obtener_rut_usuario(usuario):
 
 
 def conectar_mydb():
-    """
-    Consulta la base de datos MySQL y devuelve el RUT del usuario.
-    
-    :param usuario: nombre de usuario (string)
-    :return: rut (string) o None si no existe
-    """
-    return mysql.connector.connect(
-        # Conexión a la base de datos
-
-        host="localhost",
-        port=3306,
-        user="nuevo_usuario",
-        password="tuclave",
-        database="tienda_online"
-        ,
-        autocommit=True
+    try:
+        conn = mysql.connector.connect(
+            host="localhost",
+            port=3306,
+            user="vscodium",
+            password="password_seguro",
+            database="tienda_online",
+            autocommit=True
         )
+        return conn
+
+    except Error as e:
+        print(f"Error conectando a MySQL: {e}")
+        return None

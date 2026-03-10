@@ -19,7 +19,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt
 import sys
-import sqlite3
+from backend.db.conexion import conectar_mydb
 from datetime import datetime
 from backend.logica.inventario import obtener_producto_por_codigo
 from backend.logica.ventas import (
@@ -389,33 +389,31 @@ def crear_pagina_ventas(sesion):
         )
         if ok and texto:
             texto_busqueda = f"%{texto.strip()}%"
-            with sqlite3.connect("clientes.db") as conn:
-                cursor = conn.cursor()
-                cursor.execute(
-                    "SELECT nombre, rut FROM clientes WHERE rut LIKE ? OR nombre LIKE ?",
-                    (texto_busqueda, texto_busqueda),
-                )
-                rows = cursor.fetchall()
-
-                if rows:
-                    # Tomamos el primero encontrado
-                    row = rows[0]
-                    nonlocal cliente_seleccionado
-                    cliente_seleccionado = {"nombre": row[0], "rut": row[1]}
-                    lbl_cliente_info.setText(f"{row[0]}\n{row[1]}")
-
-                    # Validar deuda
-                    deuda = calcular_deuda_cliente(row[1])
-                    if deuda > 50000:  # Umbral de advertencia
-                        QMessageBox.warning(
-                            pagina,
-                            "⚠️ Deuda Pendiente Alta",
-                            f"La clienta {row[0]} tiene una deuda pendiente de ${deuda:,}.\n\nPor favor verifique su situación antes de otorgar un nuevo crédito.",
-                        )
-                else:
+            conn=conectar_mydb()
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT nombre, rut FROM cliente WHERE rut LIKE %s OR nombre LIKE %s",
+                (texto_busqueda, texto_busqueda),
+            )
+            rows = cursor.fetchall()
+            if rows:
+                # Tomamos el primero encontrado
+                row = rows[0]
+                nonlocal cliente_seleccionado
+                cliente_seleccionado = {"nombre": row[0], "rut": row[1]}
+                lbl_cliente_info.setText(f"{row[0]}\n{row[1]}")
+                # Validar deuda
+                deuda = calcular_deuda_cliente(row[1])
+                if deuda > 50000:  # Umbral de advertencia
                     QMessageBox.warning(
-                        pagina, "No encontrado", "Clienta no encontrada."
+                        pagina,
+                        "⚠️ Deuda Pendiente Alta",
+                        f"La clienta {row[0]} tiene una deuda pendiente de ${deuda:,}.\n\nPor favor verifique su situación antes de otorgar un nuevo crédito.",
                     )
+            else:
+                QMessageBox.warning(
+                    pagina, "No encontrado", "Clienta no encontrada."
+                )
 
     btn_buscar_cliente.clicked.connect(buscar_cliente_db)
     layout_derecha.addSpacing(10)

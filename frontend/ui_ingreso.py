@@ -35,7 +35,7 @@ def obtener_info_producto(codigo):
         conn = sqlite3.connect("reuso.db")
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT nombre, stock, precio FROM productos WHERE codigo = ?", (codigo,)
+            "SELECT nombre, stock, precio FROM prenda WHERE barcode = ?", (codigo,)
         )
         row = cursor.fetchone()
         conn.close()
@@ -66,6 +66,23 @@ def agregar_stock_bd(codigo, cantidad):
         return False, "Producto no encontrado", 0, 0
     except Exception as e:
         return False, str(e), 0, 0
+
+
+def crear_producto_bd(codigo, nombre, marca, precio=0):
+    try:
+        conn = sqlite3.connect("reuso.db")
+        cursor = conn.cursor()
+        cursor.execute(
+            "INSERT INTO productos (codigo, nombre, marca, stock, precio) VALUES (?, ?, ?, 0, ?)",
+            (codigo, nombre, marca, precio),
+        )
+        conn.commit()
+        conn.close()
+        return True, ""
+    except sqlite3.IntegrityError:
+        return False, "Ya existe un producto con ese código."
+    except Exception as e:
+        return False, str(e)
 
 
 def obtener_resumen_marca(marca):
@@ -505,12 +522,12 @@ def crear_pagina_ingreso():
     card_layout.setSpacing(15)
 
     # Buscador
-    lbl_buscar = QLabel("Código del Producto:")
+    lbl_buscar = QLabel("Código de barras:")
     lbl_buscar.setStyleSheet("font-size: 16px; font-weight: bold; color: #2D3436;")
     card_layout.addWidget(lbl_buscar)
 
     input_codigo = QLineEdit()
-    input_codigo.setPlaceholderText("Escanee o ingrese código...")
+    input_codigo.setPlaceholderText("Escanee o ingrese código de barras...")
     input_codigo.setStyleSheet(
         "padding: 8px; font-size: 14px; border: 1px solid #BDBDBD; border-radius: 6px;"
     )
@@ -564,8 +581,10 @@ def crear_pagina_ingreso():
     layout_ingreso.addWidget(card)
     layout_ingreso.addStretch()
     stack.addWidget(page_ingreso)
+    return pagina
 
     # --- Lógica ---
+  # --- Lógica ---
     def buscar():
         codigo = input_codigo.text().strip()
         if not codigo:
@@ -583,7 +602,68 @@ def crear_pagina_ingreso():
         else:
             QMessageBox.warning(pagina, "No encontrado", "El producto no existe.")
             info_frame.setVisible(False)
+            crear_nuevo = QMessageBox.question(
+                pagina,
+                "Código no registrado",
+                "No existe una prenda asociada a este código.\n¿Desea crearla desde cero?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.Yes,
+            )
+            if crear_nuevo != QMessageBox.Yes:
+                info_frame.setVisible(False)
+                return
 
+            nombre, ok = QInputDialog.getText(
+                pagina,
+                "Nueva prenda",
+                "Ingrese nombre de la prenda:",
+            )
+            if not ok or not nombre.strip():
+                QMessageBox.warning(
+                    pagina, "Datos incompletos", "Debe ingresar un nombre válido."
+                )
+                info_frame.setVisible(False)
+                return
+
+            precio, ok = QInputDialog.getInt(
+                pagina,
+                "Precio inicial",
+                "Ingrese precio inicial:",
+                0,
+                0,
+                99999999,
+                1,
+            )
+            if not ok:
+                info_frame.setVisible(False)
+                return
+
+            creado, error = crear_producto_bd(
+                codigo,
+                nombre.strip(),
+                marca_seleccionada["nombre"],
+                precio,
+            )
+            if not creado:
+                QMessageBox.critical(
+                    pagina,
+                    "Error",
+                    f"No se pudo crear la prenda: {error}",
+                )
+                info_frame.setVisible(False)
+                return
+
+            lbl_nombre.setText(f"Producto: {nombre.strip()}")
+            lbl_stock.setText("Stock Actual: 0")
+            lbl_precio.setText(f"Precio Actual: ${precio}")
+            info_frame.setVisible(True)
+            input_cantidad.clear()
+            input_cantidad.setFocus()
+            QMessageBox.information(
+                pagina,
+                "Prenda creada",
+                "La prenda fue creada con stock 0. Ahora puede ingresar unidades.",
+            )
     def confirmar():
         codigo = input_codigo.text().strip()
         cant_txt = input_cantidad.text().strip()

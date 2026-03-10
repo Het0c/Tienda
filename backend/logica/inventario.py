@@ -32,7 +32,7 @@ def obtener_producto_por_codigo(codigo_barra):
     cursor = conn.cursor()
 
     cursor.execute("""SELECT nombre ,precio  FROM prenda
-    WHERE id_prenda = ?""", (codigo_barra,))
+    WHERE barcode = ?""", (codigo_barra,))
     prenda = cursor.fetchone()
 
     conn.close()
