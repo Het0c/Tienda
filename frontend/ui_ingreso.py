@@ -35,7 +35,7 @@ def obtener_info_producto(codigo):
         conn = sqlite3.connect("reuso.db")
         cursor = conn.cursor()
         cursor.execute(
-            "SELECT nombre, stock, precio FROM prenda WHERE barcode = ?", (codigo,)
+            "SELECT nombre, stock, precio FROM prenda WHERE barcode like ?", (codigo,'%',)
         )
         row = cursor.fetchone()
         conn.close()
@@ -237,6 +237,12 @@ class VentanaAuditoria(QDialog):
 
 
 def crear_pagina_ingreso():
+
+    producto_actual = {
+    "codigo": "",
+    "nombre": "",
+    "precio": 0
+    }
     pagina = QWidget()
     layout = QVBoxLayout(pagina)
     layout.setContentsMargins(40, 40, 40, 40)
@@ -255,11 +261,85 @@ def crear_pagina_ingreso():
 
     # Stack para manejar las vistas (Marcas -> Ingreso)
     stack = QStackedWidget()
+
+    PAGE_BUSCAR = 0
+    PAGE_MARCA = 1
+    PAGE_INGRESO = 2
     layout.addWidget(stack)
+
+    def buscar():
+        codigo = input_codigo.text().strip()
+        if not codigo:
+            return
+        datos = obtener_info_producto(codigo)
+        if datos:
+            nombre, stock, precio = datos
+            producto_actual["codigo"] = codigo
+            producto_actual["nombre"] = nombre
+            producto_actual["precio"] = precio
+            stack.setCurrentIndex(PAGE_MARCA)
+        else:
+            crear = QMessageBox.question(
+                pagina,
+                "Producto no existe",
+                "El código no está registrado.\n¿Desea crearlo?",
+                QMessageBox.Yes | QMessageBox.No
+            )
+            if crear != QMessageBox.Yes:
+                return
+            nombre, ok = QInputDialog.getText(
+                pagina,
+                "Nuevo producto",
+                "Nombre del producto:"
+            )
+            if not ok:
+                return
+            precio, ok = QInputDialog.getInt(
+                pagina,
+                "Precio inicial",
+                "Precio:",
+                0,
+                0,
+                9999999
+            )
+            if not ok:
+                return
+            creado, err = crear_producto_bd(
+                codigo,
+                nombre,
+                "",
+                precio
+            )
+            if not creado:
+                QMessageBox.critical(pagina, "Error", err)
+                return
+            producto_actual["codigo"] = codigo
+            producto_actual["nombre"] = nombre
+            producto_actual["precio"] = precio
+            stack.setCurrentIndex(PAGE_MARCA)
+
 
     # ==========================================
     # PÁGINA 1: SELECCIÓN DE MARCA
     # ==========================================
+    page_buscar = QWidget()
+    layout_buscar = QVBoxLayout(page_buscar)
+    
+    titulo = QLabel("Escanear Producto")
+    titulo.setStyleSheet("font-size:24px; font-weight:bold;")
+    titulo.setAlignment(Qt.AlignCenter)
+    
+    input_codigo = QLineEdit()
+    input_codigo.setPlaceholderText("Escanee código de barras...")
+    
+    btn_buscar = QPushButton("Buscar producto")
+    btn_buscar.clicked.connect(buscar)
+    input_codigo.returnPressed.connect(buscar)
+    layout_buscar.addWidget(titulo)
+    layout_buscar.addWidget(input_codigo)
+    layout_buscar.addWidget(btn_buscar)
+    
+    stack.addWidget(page_buscar)
     page_marcas = QWidget()
     layout_marcas = QVBoxLayout(page_marcas)
     layout_marcas.setAlignment(Qt.AlignTop)
@@ -321,15 +401,18 @@ def crear_pagina_ingreso():
     marca_seleccionada = {"nombre": ""}
 
     def ir_a_ingreso(nombre_marca):
+
         marca_seleccionada["nombre"] = nombre_marca
+
         lbl_marca_actual.setText(f"Marca: {nombre_marca}")
+        lbl_nombre.setText(f"Producto: {producto_actual['nombre']}")
+        lbl_precio.setText(f"Precio Actual: ${producto_actual['precio']}")
 
         stock, valor = obtener_resumen_marca(nombre_marca)
         lbl_resumen_stock.setText(f"Total Prendas: {stock}")
         lbl_resumen_valor.setText(f"Valor Total: ${valor:,}")
 
-        stack.setCurrentIndex(1)
-        input_codigo.setFocus()
+        stack.setCurrentIndex(PAGE_INGRESO)
 
     def mostrar_menu_contextual(pos, marca, btn):
         menu = QMenu(btn)
@@ -581,96 +664,15 @@ def crear_pagina_ingreso():
     layout_ingreso.addWidget(card)
     layout_ingreso.addStretch()
     stack.addWidget(page_ingreso)
-    return pagina
 
-    # --- Lógica ---
-  # --- Lógica ---
-    def buscar():
-        codigo = input_codigo.text().strip()
-        if not codigo:
-            return
 
-        datos = obtener_info_producto(codigo)
-        if datos:
-            nombre, stock, precio = datos
-            lbl_nombre.setText(f"Producto: {nombre}")
-            lbl_stock.setText(f"Stock Actual: {stock}")
-            lbl_precio.setText(f"Precio Actual: ${precio}")
-            info_frame.setVisible(True)
-            input_cantidad.clear()
-            input_cantidad.setFocus()
-        else:
-            QMessageBox.warning(pagina, "No encontrado", "El producto no existe.")
-            info_frame.setVisible(False)
-            crear_nuevo = QMessageBox.question(
-                pagina,
-                "Código no registrado",
-                "No existe una prenda asociada a este código.\n¿Desea crearla desde cero?",
-                QMessageBox.Yes | QMessageBox.No,
-                QMessageBox.Yes,
-            )
-            if crear_nuevo != QMessageBox.Yes:
-                info_frame.setVisible(False)
-                return
 
-            nombre, ok = QInputDialog.getText(
-                pagina,
-                "Nueva prenda",
-                "Ingrese nombre de la prenda:",
-            )
-            if not ok or not nombre.strip():
-                QMessageBox.warning(
-                    pagina, "Datos incompletos", "Debe ingresar un nombre válido."
-                )
-                info_frame.setVisible(False)
-                return
-
-            precio, ok = QInputDialog.getInt(
-                pagina,
-                "Precio inicial",
-                "Ingrese precio inicial:",
-                0,
-                0,
-                99999999,
-                1,
-            )
-            if not ok:
-                info_frame.setVisible(False)
-                return
-
-            creado, error = crear_producto_bd(
-                codigo,
-                nombre.strip(),
-                marca_seleccionada["nombre"],
-                precio,
-            )
-            if not creado:
-                QMessageBox.critical(
-                    pagina,
-                    "Error",
-                    f"No se pudo crear la prenda: {error}",
-                )
-                info_frame.setVisible(False)
-                return
-
-            lbl_nombre.setText(f"Producto: {nombre.strip()}")
-            lbl_stock.setText("Stock Actual: 0")
-            lbl_precio.setText(f"Precio Actual: ${precio}")
-            info_frame.setVisible(True)
-            input_cantidad.clear()
-            input_cantidad.setFocus()
-            QMessageBox.information(
-                pagina,
-                "Prenda creada",
-                "La prenda fue creada con stock 0. Ahora puede ingresar unidades.",
-            )
     def confirmar():
-        codigo = input_codigo.text().strip()
+        codigo = producto_actual["codigo"]
         cant_txt = input_cantidad.text().strip()
         if not cant_txt.isdigit() or int(cant_txt) <= 0:
             QMessageBox.warning(pagina, "Error", "Cantidad inválida.")
             return
-
         cantidad = int(cant_txt)
         ok, nombre, stock_ant, stock_new = agregar_stock_bd(codigo, cantidad)
         if ok:
@@ -685,7 +687,6 @@ def crear_pagina_ingreso():
             input_codigo.setFocus()
         else:
             QMessageBox.critical(pagina, "Error", f"Error al actualizar: {nombre}")
-
     btn_buscar.clicked.connect(buscar)
     input_codigo.returnPressed.connect(buscar)
     btn_confirmar.clicked.connect(confirmar)

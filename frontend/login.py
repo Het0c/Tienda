@@ -11,6 +11,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QKeySequence, QPainter, QPen, QColor
 from PyQt5.QtCore import Qt, QTimer, QPropertyAnimation, QPoint
 from backend.logica.user import verificar_contraseña, verificacion_admin, Sesion
+import os
 
 debug = True  # Mantener global, pero no crea widgets
 
@@ -43,14 +44,11 @@ class LoadingButton(QPushButton):
         self.update()
 
     def paintEvent(self, event):
+        super().paintEvent(event)
+
         if self._is_loading:
             painter = QPainter(self)
             painter.setRenderHint(QPainter.Antialiasing)
-
-            # Dibujar fondo amarillo manualmente para mantener estilo al cargar
-            painter.setBrush(QColor("#F4D03F"))
-            painter.setPen(Qt.NoPen)
-            painter.drawRoundedRect(self.rect(), 8, 8)
 
             w = self.width()
             h = self.height()
@@ -61,12 +59,9 @@ class LoadingButton(QPushButton):
             rect_x = int(w / 2 - radius)
             rect_y = int(h / 2 - radius)
 
-            # Dibujar arco giratorio (spinner)
             painter.drawArc(
                 rect_x, rect_y, radius * 2, radius * 2, -self._angle * 16, -270 * 16
             )
-        else:
-            super().paintEvent(event)
 
 
 class LoginWindow(QWidget):
@@ -303,24 +298,40 @@ class LoginWindow(QWidget):
         QTimer.singleShot(800, lambda: self._verificar_credenciales(usr, psswd))
 
     def _verificar_credenciales(self, usr, psswd):
-        if verificar_contraseña(usr, psswd):
-            es_admin = verificacion_admin(usr)
-            self.ss.iniciar_sesion(usr, es_admin)
 
-            # self.setEnabled(False) # Ya está bloqueado por la animación
-            self.on_login_success(self.ss)
+        try:
+            if verificar_contraseña(usr, psswd):
 
-            # Retrasar el cierre para permitir que el Dashboard haga su fade-in
-            QTimer.singleShot(600, self.close)
-        else:
-            self.login_btn.stop_loading()
-            self.user_input.setEnabled(True)
-            self.pass_input.setEnabled(True)
-            self.btn_ver_pass.setEnabled(True)
-            self.pass_input.setFocus()
-            self.lbl_error.setText("Usuario o contraseña incorrectos.")
-            self.animar_shake(self.pass_container)
+                es_admin = verificacion_admin(usr)
+                self.ss.iniciar_sesion(usr, es_admin)
 
+                self.on_login_success(self.ss)
+                QTimer.singleShot(600, self.close)
+
+            else:
+                self._login_error("Usuario o contraseña incorrectos.")
+
+        except Exception as e:
+
+            print("ERROR LOGIN:", e)
+
+            self._login_error(
+                "No se pudo conectar al sistema.\nIntenta nuevamente."
+            )
+    def _login_error(self, mensaje):
+
+        self.login_btn.stop_loading()
+
+        self.user_input.setEnabled(True)
+        self.pass_input.setEnabled(True)
+        self.btn_ver_pass.setEnabled(True)
+
+        self.pass_input.setFocus()
+
+        self.lbl_error.setText(mensaje)
+
+        self.animar_shake(self.pass_container)
+        
     def animar_shake(self, widget):
         anim = QPropertyAnimation(widget, b"pos", self)
         anim.setDuration(300)

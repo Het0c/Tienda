@@ -3,46 +3,9 @@ import sqlite3
 DB_PATH = "reuso.db"
 
 
-def inicializar_tabla_marcas():
-    """Crea la tabla de marcas si no existe y añade las por defecto."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS marcas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT UNIQUE NOT NULL
-            )
-        """
-        )
-        # Verificar si está vacía para insertar defaults
-        cursor.execute("SELECT count(*) FROM marcas")
-        if cursor.fetchone()[0] == 0:
-            marcas_default = [
-                "FBO",
-                "Via Donna",
-                "Liola",
-                "Rossana Revello",
-                "Jucal",
-                "Art. Cueros",
-                "Importaciones Italianas",
-                "P. Giusti Concept",
-                "Accesorios",
-            ]
-            cursor.executemany(
-                "INSERT OR IGNORE INTO marcas (nombre) VALUES (?)",
-                [(m,) for m in marcas_default],
-            )
-            conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Error inicializando marcas: {e}")
-
 
 def obtener_marcas():
     """Retorna una lista de nombres de marcas ordenadas alfabéticamente."""
-    inicializar_tabla_marcas()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT nombre FROM marcas ORDER BY nombre ASC")

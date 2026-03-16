@@ -3,69 +3,6 @@ import sqlite3
 DB_PATH = "reuso.db"
 
 
-def inicializar_tabla_marcas():
-    """Crea la tabla de marcas si no existe y añade las por defecto."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS marcas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                nombre TEXT UNIQUE NOT NULL
-            )
-        """
-        )
-        # Tabla de auditoría para registrar eliminaciones
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS auditoria_marcas (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                fecha TEXT DEFAULT (datetime('now', 'localtime')),
-                accion TEXT,
-                detalle TEXT
-            )
-        """
-        )
-        # Tabla de productos para evitar errores si no existe
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS productos (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                codigo TEXT UNIQUE,
-                nombre TEXT,
-                marca TEXT,
-                stock INTEGER DEFAULT 0,
-                precio INTEGER DEFAULT 0
-            )
-        """
-        )
-        # Verificar si está vacía para insertar defaults
-        cursor.execute("SELECT count(*) FROM marcas")
-        if cursor.fetchone()[0] == 0:
-            marcas_default = [
-                "FBO",
-                "Via Donna",
-                "Liola",
-                "Rossana Revello",
-                "Jucal",
-                "Art. Cueros",
-                "Importaciones Italianas",
-                "P. Giusti Concept",
-                "Accesorios",
-            ]
-            cursor.executemany(
-                "INSERT OR IGNORE INTO marcas (nombre) VALUES (?)",
-                [(m,) for m in marcas_default],
-            )
-
-        sincronizar_productos(cursor)
-
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Error inicializando marcas: {e}")
-
 
 def sincronizar_productos(cursor):
     """Sincroniza los productos del sistema antiguo a la nueva tabla."""
@@ -101,7 +38,6 @@ def sincronizar_productos(cursor):
 
 def obtener_marcas():
     """Retorna una lista de nombres de marcas ordenadas alfabéticamente."""
-    inicializar_tabla_marcas()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute("SELECT nombre FROM marcas ORDER BY nombre ASC")

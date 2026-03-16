@@ -40,7 +40,7 @@ def verificacion_admin(rut_empleado):
     conn = conectar_mydb()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT idTipoEmpleado FROM empleado WHERE rut = %s", (rut_empleado,))
+    cursor.execute("SELECT rut FROM usuario WHERE rut = %s", (rut_empleado,))
     resultado = cursor.fetchone()
 
     if resultado and resultado[0] == 1 or resultado and resultado[0] == 3:  # Suponiendo que el tipo de empleado 1 es admin
