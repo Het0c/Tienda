@@ -29,7 +29,7 @@ REACT_DEV_ORIGIN = os.getenv("REACT_DEV_ORIGIN", "http://localhost:5173")
 app = FastAPI(title="Tienda Local API", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[TAURI_DEV_ORIGIN, REACT_DEV_ORIGIN, "tauri://localhost", "http://tauri.localhost"],
+    allow_origins=[TAURI_DEV_ORIGIN, REACT_DEV_ORIGIN, "tauri://localhost", "http://tauri.localhost", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

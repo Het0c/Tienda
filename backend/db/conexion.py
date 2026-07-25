@@ -36,10 +36,10 @@ def obtener_rut_usuario(usuario):
     try:
         # Conexión a la base de datos
         conn = mysql.connector.connect(
-        host="localhost",
+        host="host.docker.internal",
         port=3306,
-        user="nuevo_usuario",
-        password="tuclave",
+        user="app_user",
+        password="Psx;YiIO;?wdmWcPGEiG",
         database="tienda_online"
         )
         cursor = conn.cursor()
@@ -65,10 +65,10 @@ def obtener_rut_usuario(usuario):
 def conectar_mydb():
     try:
         conn = mysql.connector.connect(
-            host="localhost",
+            host="host.docker.internal",
             port=3306,
-            user="vscodium",
-            password="password_seguro",
+            user="app_user",
+            password="Psx;YiIO;?wdmWcPGEiG",
             database="tienda_online",
             autocommit=True
         )

@@ -19,3 +19,8 @@ __pycache__/
 # Imágenes o assets generados temporalmente (si aplica)
 *.swp
 config.json
+
+.env
+src-tauri/target/
+frontend/dist/
+frontend/node_modules/

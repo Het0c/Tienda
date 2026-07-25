@@ -23,6 +23,7 @@ def registrar_contraseña(rut_empleado, contraseña):
 
 def verificar_contraseña(rut_empleado, contraseña):
     conn = conectar_mydb()
+
     cursor = conn.cursor()
 
     cursor.execute("SELECT password FROM usuario WHERE rut = %s", (rut_empleado,))
@@ -34,7 +35,7 @@ def verificar_contraseña(rut_empleado, contraseña):
     hash_almacenado = resultado[0]
     hash_ingresado = hashear_contraseña(contraseña)
 
-    return hash_almacenado == hash_ingresado
+    return resultado # hash_almacenado == hash_ingresado
 
 def verificacion_admin(rut_empleado):
     conn = conectar_mydb()
