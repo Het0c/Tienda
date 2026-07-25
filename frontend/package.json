@@ -1,0 +1,1 @@
+{"scripts":{"dev":"vite --host 127.0.0.1","build":"vite build","preview":"vite preview"},"dependencies":{"@vitejs/plugin-react":"latest","vite":"latest","typescript":"latest","react":"latest","react-dom":"latest","axios":"latest","@tauri-apps/api":"latest","tailwindcss":"latest","@tailwindcss/vite":"latest"},"devDependencies":{}}
