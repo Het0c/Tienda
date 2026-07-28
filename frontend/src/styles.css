@@ -1,4 +1,62 @@
 @import "tailwindcss";
-button { border-radius: .5rem; padding: .5rem .75rem; background: white; }
+
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #26251f; background: #171813; font-synthesis: none; }
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 1180px; min-height: 100vh; }
+button { font: inherit; }
+
+.boutique-shell { --yellow: #f4c62f; --ink: #24241f; --muted: #77766d; display: flex; min-height: 100vh; overflow: hidden; background: #161711; }
+.sidebar { z-index: 10; width: 76px; flex: 0 0 76px; min-height: 100vh; padding: 18px 11px; display: flex; flex-direction: column; align-items: center; gap: 13px; color: #3d3c36; background: rgba(248,247,242,.97); border-right: 1px solid rgba(30,30,20,.12); box-shadow: 8px 0 28px #0002; }
+.sidebar button { border: 0; cursor: pointer; }
+.sidebar__brand { width: 42px; height: 42px; display: grid; place-items: center; border-radius: 50%; font: italic 700 27px Georgia, serif; color: #171710; background: var(--yellow); box-shadow: 0 7px 16px #c6932850; }
+.sidebar__theme { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; color: #515048; background: #e9e8e2; }
+.sidebar__nav { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: 10px; }
+.sidebar__link, .sidebar__logout { position: relative; width: 48px; height: 48px; display: grid; place-items: center; border-radius: 15px; color: #605f56; background: transparent; transition: .18s ease; }
+.sidebar__link:hover, .sidebar__link.is-active { color: #1c1c18; background: var(--yellow); transform: translateY(-1px); }
+.sidebar__tooltip { position: absolute; left: 60px; top: 8px; width: max-content; padding: 8px 11px; border-radius: 8px; color: white; background: #272722; font-size: 12px; opacity: 0; pointer-events: none; transform: translateX(-4px); transition: .15s; }
+.sidebar__link:hover .sidebar__tooltip { opacity: 1; transform: translateX(0); }
+.sidebar__logout { margin-top: auto; color: white; background: #e65f55; box-shadow: 0 8px 17px #cf514a44; }
+.sidebar__logout:hover { transform: translateY(-2px); background: #cf4e45; }
+
+.main-menu { position: relative; isolation: isolate; width: calc(100vw - 76px); min-height: 100vh; padding: 34px clamp(42px, 5vw, 96px) 20px; display: flex; flex-direction: column; background-image: linear-gradient(90deg, rgba(13,14,10,.84), rgba(13,14,10,.39) 56%, rgba(13,14,10,.68)), var(--boutique-background); background-size: cover; background-position: center; }
+.main-menu::after { content: ''; position: absolute; z-index: -1; inset: 0; background: radial-gradient(circle at 48% 48%, transparent 10%, #0b0c0877 100%); }
+.main-menu__header { display: flex; align-items: flex-start; justify-content: space-between; color: white; }
+.main-menu__eyebrow { margin: 0 0 5px; color: var(--yellow); font-size: 12px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+.main-menu h1 { margin: 0; font: 700 clamp(32px,3vw,48px)/1 Georgia, serif; letter-spacing: -.04em; }
+.main-menu h1 em { color: var(--yellow); font-weight: 400; }
+.main-menu__welcome { margin: 10px 0 0; color: #e6e5dd; font-size: 15px; }
+.clock-widget { width: 204px; overflow: hidden; border-radius: 18px; color: #202019; background: var(--yellow); box-shadow: 0 16px 30px #0004; }
+.clock-widget__time { padding: 13px 17px 7px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 28px; font-weight: 850; letter-spacing: -.04em; }
+.clock-widget__date { padding: 8px 12px; display: flex; justify-content: center; align-items: center; gap: 6px; color: #eee; background: #282923; font-size: 12px; font-weight: 650; }
+
+.module-panel { width: min(100%, 1000px); margin: auto; padding: 25px 28px 28px; border: 1px solid #ffffff3d; border-radius: 30px; background: rgba(21,22,17,.62); box-shadow: 0 30px 70px #0006; backdrop-filter: blur(12px); }
+.module-panel__heading { margin-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; color: white; }
+.module-panel__heading p { margin: 0 0 4px; color: var(--yellow); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+.module-panel__heading h2 { margin: 0; font: 600 25px Georgia, serif; }
+.module-panel__heading > span { padding: 7px 12px; border: 1px solid #ffffff30; border-radius: 99px; color: #d8d7cf; font-size: 11px; }
+.module-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 17px; }
+.menu-card { position: relative; min-height: 190px; padding: 21px 20px 18px; display: flex; flex-direction: column; align-items: flex-start; overflow: hidden; text-align: left; border: 1px solid #e4e1d8; border-radius: 25px; cursor: pointer; color: var(--ink); background: rgba(255,255,253,.95); box-shadow: 0 12px 25px #0002; }
+.menu-card::before { content: ''; position: absolute; width: 90px; height: 90px; right: -40px; top: -38px; border-radius: 50%; background: #f4c62f2a; transition: .2s; }
+.menu-card:hover::before { transform: scale(1.7); }
+.menu-card__icon-wrap { height: 91px; display: flex; align-items: center; }
+.menu-card__icon { width: 82px; height: 82px; object-fit: contain; transition: transform .2s; }
+.menu-card:hover .menu-card__icon { transform: scale(1.08) rotate(-2deg); }
+.menu-card__copy { display: flex; flex-direction: column; gap: 3px; }
+.menu-card__copy strong { font-size: 15px; }
+.menu-card__copy small { color: var(--muted); font-size: 11px; }
+.menu-card__arrow { position: absolute; right: 17px; bottom: 19px; width: 28px; height: 28px; display: grid; place-items: center; border-radius: 50%; color: #4a473d; background: #f0cd58; font-weight: 800; }
+.main-menu__footer { padding-top: 14px; color: #d4d3ca; text-align: center; font-size: 10px; letter-spacing: .06em; }
+.theme-dark .sidebar { color: #eee; background: rgba(34,35,31,.98); border-color: #ffffff12; }
+.theme-dark .sidebar__theme { color: #f4c62f; background: #4b4b43; }
+.theme-dark .sidebar__link { color: #bbb; }
+
+@media (max-height: 820px) {
+  .main-menu { padding-top: 24px; }
+  .module-panel { padding: 18px 22px 21px; }
+  .menu-card { min-height: 154px; padding: 14px 17px; }
+  .menu-card__icon-wrap { height: 70px; }
+  .menu-card__icon { width: 62px; height: 62px; }
+}
+
 input, select { border: 1px solid #cbd5e1; border-radius: .5rem; padding: .5rem; }
 .card { background: white; border-radius: 1rem; padding: 1rem; box-shadow: 0 1px 4px #0001; }
