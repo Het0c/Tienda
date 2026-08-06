@@ -4,5 +4,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "tauri": "tauri"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "latest",
+    "@tauri-apps/api": "latest",
+    "@tauri-apps/cli": "^2.11.4",
+    "@vitejs/plugin-react": "latest",
+    "axios": "latest",
+    "framer-motion": "^12.23.12",
+    "lucide-react": "^0.468.0",
+    "react": "latest",
+    "react-dom": "latest",
+    "tailwindcss": "latest",
+    "typescript": "latest",
+    "vite": "latest"
   }
 }

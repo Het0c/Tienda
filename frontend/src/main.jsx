@@ -1,24 +1,24 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
-import { LoginPage } from './pages/LoginPage.jsx';
-import { VentasPage } from './pages/VentasPage.jsx';
+import { MainMenu } from './pages/MainMenu.jsx';
 import { InventarioPage } from './pages/InventarioPage.jsx';
+import { VentasPage } from './pages/VentasPage.jsx';
 
 function App() {
-  const [session, setSession] = React.useState(null);
-  const [page, setPage] = React.useState('ventas');
+  const [page, setPage] = React.useState('menu');
+  const [dark, setDark] = React.useState(false);
 
-  if (!session) return <LoginPage onLogin={setSession} />;
+  const navigate = (destination) => {
+    const routes = { inventario: '/inventario', ventas: '/ventas', informes: '/informes', clientes: '/clientes', arqueo: '/arqueo', 'ingreso-mercaderia': '/ingreso-mercaderia', menu: '/' };
+    window.history.pushState({}, '', routes[destination] ?? '/');
+    setPage(destination);
+  };
 
-  return <main className="min-h-screen bg-slate-100 text-slate-900">
-    <nav className="flex gap-3 bg-yellow-500 p-4 font-semibold">
-      <button onClick={() => setPage('ventas')}>Ventas</button>
-      <button onClick={() => setPage('inventario')}>Inventario</button>
-      <span className="ml-auto">RUT: {session.rut}</span>
-    </nav>
-    {page === 'ventas' ? <VentasPage session={session} /> : <InventarioPage />}
-  </main>;
+  if (page === 'inventario') return <InventarioPage />;
+  if (page === 'ventas') return <VentasPage session={{ rut: '' }} />;
+
+  return <MainMenu dark={dark} onToggleTheme={() => setDark((value) => !value)} onNavigate={navigate} onLogout={() => window.dispatchEvent(new CustomEvent('girasol:logout'))} />;
 }
 
 createRoot(document.getElementById('root')).render(<App />);
