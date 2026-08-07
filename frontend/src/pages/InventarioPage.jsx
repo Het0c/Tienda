@@ -1,18 +1,7 @@
 import React from 'react';
+import { AlertTriangle, Boxes, PackageCheck, Search, Tag } from 'lucide-react';
+import { AppLayout } from '../components/AppLayout.jsx';
 import { inventoryService } from '../services/api.js';
-
-export function InventarioPage() {
-  const [search, setSearch] = React.useState('');
-  const [rows, setRows] = React.useState([]);
-
-  React.useEffect(() => { inventoryService.list(search).then(setRows); }, [search]);
-
-  return <section className="grid gap-4 p-6">
-    <h2 className="text-xl font-bold">Inventario</h2>
-    <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar prenda" />
-    <div className="card overflow-auto">
-      <table className="w-full text-left"><thead><tr><th>Prenda</th><th>Tipo</th><th>Marca</th><th>Precio</th><th>Stock</th></tr></thead>
-      <tbody>{rows.map(row => <tr key={row.id}><td>{row.Prenda}</td><td>{row.tipo}</td><td>{row.Marca}</td><td>${row.Precio}</td><td>{row['Total Stock']}</td></tr>)}</tbody></table>
-    </div>
-  </section>;
-}
+const money=v=>new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(Number(v||0));
+export function InventarioPage(props){const [search,setSearch]=React.useState('');const [category,setCategory]=React.useState('Todas');const [rows,setRows]=React.useState([]);const [loading,setLoading]=React.useState(true);const [error,setError]=React.useState('');React.useEffect(()=>{const t=setTimeout(()=>{setLoading(true);inventoryService.list(search).then(r=>{setRows(r);setError('')}).catch(()=>setError('No pudimos conectar con el inventario.')).finally(()=>setLoading(false))},250);return()=>clearTimeout(t)},[search]);const cats=['Todas',...new Set(rows.map(r=>r.tipo).filter(Boolean))], filtered=category==='Todas'?rows:rows.filter(r=>r.tipo===category),stock=rows.reduce((s,r)=>s+Number(r['Total Stock']||0),0),low=rows.filter(r=>Number(r['Total Stock']||0)<=5).length;return <AppLayout {...props} active="inventario" title="Inventario" eyebrow="Control de existencias"><section className="metric-grid"><Metric icon={<Boxes/>} tone="yellow" label="Prendas registradas" value={rows.length} sub="productos diferentes"/><Metric icon={<PackageCheck/>} tone="green" label="Unidades disponibles" value={stock} sub="stock total"/><Metric icon={<Tag/>} tone="blue" label="Categorías" value={cats.length-1} sub="en el catálogo"/><Metric icon={<AlertTriangle/>} tone="red" label="Stock bajo" value={low} sub="requieren atención"/></section><section className="data-panel"><div className="data-panel__top"><div><h2>Listado de prendas</h2><p>Consulta stock, precio y categoría de cada producto.</p></div></div><div className="toolbar"><label className="search-field"><Search size={19}/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Buscar por nombre o código de barra..."/></label><select value={category} onChange={e=>setCategory(e.target.value)}>{cats.map(c=><option key={c}>{c}</option>)}</select></div>{error?<div className="empty-state"><AlertTriangle/><strong>{error}</strong><span>Comprueba que el servidor local esté iniciado.</span></div>:<div className="table-wrap"><table className="data-table"><thead><tr><th>Prenda</th><th>Código</th><th>Categoría</th><th>Marca</th><th>Precio</th><th>Stock</th><th>Estado</th></tr></thead><tbody>{loading?<tr><td colSpan="7" className="table-message">Cargando inventario…</td></tr>:filtered.length?filtered.map((r,i)=>{const n=Number(r['Total Stock']||0);return <tr key={r.id??i}><td><div className="product-cell"><span>{String(r.Prenda||'P')[0]}</span><strong>{r.Prenda||'Sin nombre'}</strong></div></td><td className="mono">{r.barcode||r.codigo_barra||'—'}</td><td><span className="category-pill">{r.tipo||'Sin categoría'}</span></td><td>{r.Marca||'—'}</td><td><strong>{money(r.Precio)}</strong></td><td>{n} un.</td><td><span className={`status-pill ${n===0?'out':n<=5?'low':'ok'}`}>{n===0?'Agotado':n<=5?'Stock bajo':'Disponible'}</span></td></tr>}):<tr><td colSpan="7" className="table-message">No encontramos prendas con esos filtros.</td></tr>}</tbody></table></div>}<footer className="panel-footer">Mostrando <strong>{filtered.length}</strong> de {rows.length} prendas</footer></section></AppLayout>}
+function Metric({icon,tone,label,value,sub}){return <article className="metric-card"><span className={`metric-card__icon ${tone}`}>{icon}</span><div><small>{label}</small><strong>{value}</strong><em>{sub}</em></div></article>}

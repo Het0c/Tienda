@@ -1,41 +1,5 @@
 import React from 'react';
-import { inventoryService, salesService, scannerWsUrl } from '../services/api.js';
-
-export function VentasPage({ session }) {
-  const [barcode, setBarcode] = React.useState('');
-  const [items, setItems] = React.useState([]);
-  const [metodoPago, setMetodoPago] = React.useState('efectivo');
-
-  React.useEffect(() => {
-    const ws = new WebSocket(scannerWsUrl());
-    ws.onmessage = event => setBarcode(JSON.parse(event.data).barcode);
-    return () => ws.close();
-  }, []);
-
-  async function addByBarcode(code = barcode) {
-    const product = await inventoryService.byBarcode(code);
-    setItems(current => [...current, { ...product, cantidad: 1 }]);
-    setBarcode('');
-  }
-
-  const subtotal = items.reduce((sum, item) => sum + item.precio * item.cantidad, 0);
-
-  async function registrarVenta() {
-    await salesService.create({ subtotal, productos: items, descuento_total: 0, metodo_pago: metodoPago, rut_empleado: session.rut });
-    setItems([]);
-  }
-
-  return <section className="grid gap-4 p-6">
-    <h2 className="text-xl font-bold">Punto de venta</h2>
-    <div className="card flex gap-2">
-      <input value={barcode} onChange={e => setBarcode(e.target.value)} placeholder="Código de barra" />
-      <button onClick={() => addByBarcode()}>Agregar</button>
-      <select value={metodoPago} onChange={e => setMetodoPago(e.target.value)}><option value="efectivo">Efectivo</option><option value="debito">Débito</option><option value="credito">Crédito</option></select>
-    </div>
-    <div className="card">
-      {items.map((item, index) => <div key={`${item.barcode}-${index}`} className="flex justify-between border-b py-2"><span>{item.nombre} x {item.cantidad}</span><strong>${item.precio}</strong></div>)}
-      <p className="mt-4 text-right text-2xl font-bold">Total: ${subtotal}</p>
-      <button onClick={registrarVenta} disabled={!items.length} className="bg-green-500">Registrar venta</button>
-    </div>
-  </section>;
-}
+import { Banknote, CreditCard, Minus, Plus, ScanBarcode, ShoppingBag, Trash2, WalletCards } from 'lucide-react';
+import { AppLayout } from '../components/AppLayout.jsx';import { inventoryService,salesService } from '../services/api.js';
+const money=v=>new Intl.NumberFormat('es-CL',{style:'currency',currency:'CLP',maximumFractionDigits:0}).format(v||0);
+export function VentasPage({session,...props}){const[barcode,setBarcode]=React.useState('');const[items,setItems]=React.useState([]);const[method,setMethod]=React.useState('efectivo');const[msg,setMsg]=React.useState('');async function add(){if(!barcode)return;try{const p=await inventoryService.byBarcode(barcode);setItems(c=>{const i=c.findIndex(x=>x.barcode===p.barcode);return i<0?[...c,{...p,cantidad:1}]:c.map((x,n)=>n===i?{...x,cantidad:x.cantidad+1}:x)});setBarcode('');setMsg('')}catch{setMsg('No encontramos ese código de barra.')}}function qty(i,d){setItems(c=>c.map((x,n)=>n===i?{...x,cantidad:Math.max(1,x.cantidad+d)}:x))}const total=items.reduce((s,x)=>s+x.precio*x.cantidad,0);async function sell(){try{await salesService.create({subtotal:total,productos:items,descuento_total:0,metodo_pago:method,rut_empleado:session.rut||'sistema'});setItems([]);setMsg('Venta registrada correctamente.')}catch{setMsg('No fue posible registrar la venta.')}}return <AppLayout {...props} active="ventas" title="Nueva venta" eyebrow="Punto de venta"><div className="sales-grid"><section><div className="scan-card"><div className="scan-card__icon"><ScanBarcode/></div><div><h2>Escanear o ingresar producto</h2><p>Usa el lector o escribe el código manualmente.</p><div className="scan-input"><input autoFocus value={barcode} onChange={e=>setBarcode(e.target.value)} onKeyDown={e=>e.key==='Enter'&&add()} placeholder="Ej: 7801234567890"/><button onClick={add}>Agregar producto</button></div>{msg&&<small className="feedback">{msg}</small>}</div></div><div className="data-panel cart"><div className="data-panel__top"><div><h2>Detalle de la venta</h2><p>{items.length} productos agregados</p></div><button className="text-button" onClick={()=>setItems([])}>Limpiar venta</button></div>{items.length?<div className="cart-list">{items.map((x,i)=><div className="cart-item" key={`${x.barcode}-${i}`}><span className="cart-thumb"><ShoppingBag/></span><div><strong>{x.nombre}</strong><small>Cód. {x.barcode}</small></div><div className="stepper"><button onClick={()=>qty(i,-1)}><Minus/></button><b>{x.cantidad}</b><button onClick={()=>qty(i,1)}><Plus/></button></div><strong>{money(x.precio*x.cantidad)}</strong><button className="delete" onClick={()=>setItems(c=>c.filter((_,n)=>n!==i))}><Trash2/></button></div>)}</div>:<div className="empty-state"><ShoppingBag/><strong>Tu venta está vacía</strong><span>Escanea un producto para comenzar.</span></div>}</div></section><aside className="checkout"><h2>Resumen</h2><div className="totals"><span>Subtotal <b>{money(total)}</b></span><span>Descuento <b>{money(0)}</b></span><hr/><span className="grand-total">Total <b>{money(total)}</b></span></div><h3>Método de pago</h3><div className="payment-grid">{[['efectivo',Banknote,'Efectivo'],['debito',WalletCards,'Débito'],['credito',CreditCard,'Crédito']].map(([id,I,l])=><button key={id} className={method===id?'active':''} onClick={()=>setMethod(id)}><I/><span>{l}</span></button>)}</div><button className="primary-button full" disabled={!items.length} onClick={sell}>Confirmar venta · {money(total)}</button><p className="secure-note">La venta quedará registrada en el arqueo del turno.</p></aside></div></AppLayout>}

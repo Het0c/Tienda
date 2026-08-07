@@ -4,12 +4,12 @@
     "version": "0.1.0",
     "identifier": "cl.girasol.tienda",
     "build": {
-        "beforeDevCommand": "cd frontend && npm run dev",
-        "beforeBuildCommand": "cd frontend && npm run build",
-        "devUrl": "localhost:5173",
-        "frontendDist": "../frontend/dist"
+    "beforeDevCommand": "cd frontend && npm run dev -- --port 5173 --strictPort",
+    "beforeBuildCommand": "cd frontend && npm run build",
+    "devUrl": "http://127.0.0.1:5173",
+    "frontendDist": "../frontend/dist"
     },
-    "app": {
+    "app": { 
         "windows": [
             {
                 "title": "Tienda Girasol",

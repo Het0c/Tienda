@@ -12,3 +12,7 @@ export const inventoryService = {
 };
 export const salesService = { create: payload => api.post('/sales', payload).then(r => r.data) };
 export const scannerWsUrl = () => API_BASE_URL.replace(/^http/, 'ws') + '/ws/scanner';
+
+export const cashService = { get: fecha => api.get(`/cash-register/${fecha}`).then(r => r.data), create: payload => api.post('/cash-register', payload).then(r => r.data) };
+
+export const clientService = { list: (search = '') => api.get('/clients', { params: { search } }).then(r => r.data), create: payload => api.post('/clients', payload).then(r => r.data), credit: rut => api.get(`/clients/${rut}/credit`).then(r => r.data) };

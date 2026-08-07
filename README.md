@@ -6,7 +6,6 @@ Aplicación de escritorio moderno para punto de venta (POS) y gestión integral 
 ![React](https://img.shields.io/badge/React-18+-61dafb?style=flat-square&logo=react)
 ![Python](https://img.shields.io/badge/Python-3.10+-3776ab?style=flat-square&logo=python)
 ![SQLite](https://img.shields.io/badge/SQLite-3+-003b57?style=flat-square&logo=sqlite)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 
 ## Descripción General
 
